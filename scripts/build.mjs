@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { validatePayload } from './validate.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const args = process.argv.slice(2);
 let ctxArg = '';
@@ -27,7 +30,7 @@ if (!ctxArg || !specArg || !outArg) {
 }
 
 const root = process.cwd();
-const templatePath = path.join(root, 'template', 'overview.html');
+const templatePath = path.resolve(__dirname, '..', 'template', 'overview.html');
 const context = JSON.parse(fs.readFileSync(path.resolve(root, ctxArg), 'utf8'));
 const spec = JSON.parse(fs.readFileSync(path.resolve(root, specArg), 'utf8'));
 const payload = { context, spec };

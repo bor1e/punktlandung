@@ -5,15 +5,17 @@ import { extractJsonIsland } from './validate.mjs';
 
 const args = process.argv.slice(2);
 let asJson = false;
+let asCopilot = false;
 const files = [];
 
 for (const a of args) {
   if (a === '--json') asJson = true;
+  else if (a === '--copilot-prompt') asCopilot = true;
   else files.push(a);
 }
 
 if (files.length === 0) {
-  console.error('Usage: node scripts/merge-answers.mjs [--json] <returned-1.html> [returned-2.html ...]');
+  console.error('Usage: node scripts/merge-answers.mjs [--json|--copilot-prompt] <returned-1.html> [returned-2.html ...]');
   process.exit(1);
 }
 
@@ -172,6 +174,37 @@ const output = {
 
 if (asJson) {
   console.log(JSON.stringify(output, null, 2));
+  process.exit(conflicts.length > 0 ? 2 : 0);
+}
+
+if (asCopilot) {
+  const prompt = [];
+  prompt.push(`Apply the stakeholder decisions below to \`${output.spec}\` (source version: ${output.version}).`);
+  prompt.push('Update the specification scenarios/requirements for every resolved item, remove moot items, and do NOT invent answers for open or conflicted items.');
+  prompt.push('');
+  prompt.push('## Resolved Decisions to Apply');
+  if (resolved.length === 0) prompt.push('- None.');
+  for (const r of resolved) {
+    prompt.push(`- \`${r.id}\` (${r.ref || '-'}): **${r.title}** -> ${r.answer} _(decided by ${r.by})_${r.note ? ` | Note: ${r.note}` : ''}`);
+  }
+  if (moot.length > 0) {
+    prompt.push('');
+    prompt.push('## Moot (Remove / Mark Out of Scope)');
+    for (const m of moot) prompt.push(`- \`${m.id}\` (${m.ref || '-'}): ${m.title} — ${m.reason}`);
+  }
+  if (conflicts.length > 0) {
+    prompt.push('');
+    prompt.push('## Conflicts (Ask Human Before Implementing)');
+    for (const c of conflicts) {
+      prompt.push(`- \`${c.id}\`: ${c.entries.map((e) => `${e.respondent} [${e.role || 'no role'}]=${e.answer}`).join(' vs. ')}`);
+    }
+  }
+  if (stillOpen.length > 0) {
+    prompt.push('');
+    prompt.push('## Still Open (Keep Marked as Unresolved)');
+    for (const o of stillOpen) prompt.push(`- \`${o.id}\` (Owner: ${partiesById.get(o.decider)?.name || o.decider}): ${o.title}`);
+  }
+  console.log(prompt.join('\n'));
   process.exit(conflicts.length > 0 ? 2 : 0);
 }
 

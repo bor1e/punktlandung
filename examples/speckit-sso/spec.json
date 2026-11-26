@@ -1,0 +1,128 @@
+{
+  "$schema": "../../schema/spec.schema.json",
+  "id": "enterprise-sso-login",
+  "logo": "SS",
+  "brand": "Enterprise SSO",
+  "subtitle": "Spec Kit [NEEDS CLARIFICATION] example",
+  "title": "Enterprise SSO Login",
+  "lead": "Clarification page extracted from a GitHub Spec Kit spec.md. Reuses the shared team context from examples/generic-plan/context.json and demonstrates multi-rule mootWhen branching.",
+  "spec": {
+    "file": "examples/speckit-sso/spec.md",
+    "version": "0.1.0",
+    "date": "2026-11-26",
+    "openCount": 5,
+    "unprovableCount": 0
+  },
+  "sourcesBadges": [
+    { "label": "Workflow", "value": "GitHub Spec Kit" },
+    { "label": "Team Context", "value": "Reused (generic-plan)" }
+  ],
+  "keystone": {
+    "id": "SC-1",
+    "mootOption": "0",
+    "tag": "SAML path",
+    "mootStatus": "not needed for OIDC-only",
+    "openBanner": "Decide protocol scope first (OIDC vs. SAML 2.0): choosing OIDC-only removes SAML metadata and certificate rotation questions.",
+    "mootBanner": "OIDC-only selected: SAML-specific metadata/certificate questions are greyed out."
+  },
+  "groups": [
+    { "id": "proto", "title": "Protocol & Metadata" },
+    { "id": "prov", "title": "Provisioning & Sessions" }
+  ],
+  "topics": {},
+  "questions": [
+    {
+      "id": "SC-1",
+      "group": "proto",
+      "topic": null,
+      "title": "SSO protocol scope for v1",
+      "question": "Which SSO protocol(s) must v1 support?",
+      "context": "spec.md [NEEDS CLARIFICATION #1]. No protocol is committed yet.",
+      "options": [
+        "OIDC only (Okta, Entra ID, Google Workspace)",
+        "SAML 2.0 + OIDC both in v1",
+        "SAML 2.0 only"
+      ],
+      "proposal": 0,
+      "reason": "OIDC covers major enterprise IdPs with far simpler token validation and zero XML signature complexity for v1.",
+      "raci": { "PO": "A", "ARCH": "R", "BIZ": "C", "PLAT": "C" },
+      "ref": "NEEDS CLARIFICATION #1",
+      "dependsOn": []
+    },
+    {
+      "id": "SC-2",
+      "group": "proto",
+      "topic": null,
+      "mootWhen": { "id": "SC-1", "eq": "0", "reason": "not needed for OIDC-only" },
+      "title": "SAML metadata & certificate rotation",
+      "question": "How do target enterprise tenants distribute SAML IdP metadata and rotate signing certificates?",
+      "context": "spec.md [NEEDS CLARIFICATION #2]. Fact question: depends on enterprise customer IdP operations.",
+      "options": [
+        "Dynamic IdP metadata URL polled automatically",
+        "Static XML upload + manual certificate rollover window"
+      ],
+      "proposal": null,
+      "reason": "No proposal: fact question — Business/Customer Success knows what target enterprise IT departments actually provide.",
+      "raci": { "BIZ": "AR", "ARCH": "C", "PO": "I" },
+      "ref": "NEEDS CLARIFICATION #2",
+      "dependsOn": ["SC-1"]
+    },
+    {
+      "id": "SC-3",
+      "group": "prov",
+      "topic": null,
+      "title": "Just-in-Time (JIT) account provisioning",
+      "question": "Should first-time SSO logins create user accounts automatically or require pre-invited accounts?",
+      "context": "spec.md [NEEDS CLARIFICATION #3]. Affects license billing and security approval.",
+      "options": [
+        "Enable JIT provisioning on valid IdP login",
+        "Require pre-invited accounts (reject unknown emails)"
+      ],
+      "proposal": 1,
+      "reason": "Pre-invited accounts avoid surprise seat billing and match conservative enterprise access policies; JIT can follow in v2.",
+      "raci": { "BIZ": "A", "PO": "R", "ARCH": "C" },
+      "ref": "NEEDS CLARIFICATION #3",
+      "dependsOn": []
+    },
+    {
+      "id": "SC-4",
+      "group": "prov",
+      "topic": null,
+      "mootWhen": { "id": "SC-3", "eq": "1", "reason": "not needed without JIT" },
+      "title": "Default role for JIT-provisioned users",
+      "question": "If JIT provisioning is enabled, which role should newly created users receive by default?",
+      "context": "spec.md [NEEDS CLARIFICATION #4]. Only applies if JIT provisioning (SC-3) is enabled.",
+      "options": [
+        "Read-only Viewer (least privilege)",
+        "Standard Member",
+        "Configurable per tenant IdP group claim"
+      ],
+      "proposal": 0,
+      "reason": "Least privilege prevents accidental write/admin access on first login.",
+      "raci": { "BIZ": "A", "PO": "C", "ARCH": "I" },
+      "ref": "NEEDS CLARIFICATION #4",
+      "dependsOn": ["SC-3"]
+    },
+    {
+      "id": "SC-5",
+      "group": "prov",
+      "topic": null,
+      "title": "Session lifetime & IdP revocation",
+      "question": "How long should local app sessions remain valid relative to IdP session expiry?",
+      "context": "spec.md [NEEDS CLARIFICATION #5]. Trade-off between security compliance and re-login friction.",
+      "options": [
+        "Fixed 8-hour local session (re-authenticate via IdP afterward)",
+        "Match IdP token expiry + OIDC back-channel logout"
+      ],
+      "proposal": 0,
+      "reason": "8-hour fixed session is simple, predictable, and avoids back-channel logout complexity in v1.",
+      "raci": { "ARCH": "A", "BIZ": "C", "PO": "C" },
+      "ref": "NEEDS CLARIFICATION #5",
+      "dependsOn": []
+    }
+  ],
+  "sources": [
+    "examples/speckit-sso/spec.md (v0.1.0)",
+    "examples/generic-plan/context.json (reused shared team context)"
+  ]
+}

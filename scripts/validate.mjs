@@ -159,7 +159,7 @@ export function validatePayload(payload, label = 'spec-data') {
 }
 
 export function extractJsonIsland(html, id) {
-  const re = new RegExp(`<script\\s+type=["']application/json["']\\s+id=["']${id}["']>([\\s\\S]*?)<\\/script>`);
+  const re = new RegExp(`<script\\b[^>]*\\bid=["']${id}["'][^>]*>([\\s\\S]*?)<\\/script>`, 'i');
   const m = html.match(re);
   if (!m) return null;
   return JSON.parse(m[1]);
@@ -222,7 +222,12 @@ function runCli() {
   }
 
   const targets = process.argv.slice(2);
-  const htmlFiles = targets.length > 0 ? targets : ['example.html', 'examples/generic-plan/open-points.html'];
+  const htmlFiles = targets.length > 0 ? targets : [
+    'example.html',
+    'examples/generic-plan/open-points.html',
+    'examples/speckit-sso/open-points.html',
+    'examples/openspec-webhooks/open-points.html'
+  ];
   const summaries = [];
 
   for (const rel of htmlFiles) {

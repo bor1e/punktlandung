@@ -1,0 +1,83 @@
+{
+  "$schema": "../../schema/spec.schema.json",
+  "id": "openspec-webhook-retries",
+  "logo": "WH",
+  "brand": "Webhook Retries",
+  "subtitle": "OpenSpec brownfield delta example",
+  "title": "Signed Webhook Retries",
+  "lead": "Async stakeholder sign-off for openspec/changes/webhook-retries/proposal.md before running /opsx:apply. Reuses examples/generic-plan/context.json.",
+  "spec": {
+    "file": "examples/openspec-webhooks/proposal.md",
+    "version": "0.1.0",
+    "date": "2026-11-26",
+    "openCount": 3,
+    "unprovableCount": 0
+  },
+  "sourcesBadges": [
+    { "label": "Workflow", "value": "OpenSpec Delta" },
+    { "label": "Team Context", "value": "Reused (generic-plan)" }
+  ],
+  "groups": [
+    { "id": "security", "title": "Signing & Secret Rotation" },
+    { "id": "delivery", "title": "Retry & Dead-Letter Policy" }
+  ],
+  "topics": {},
+  "questions": [
+    {
+      "id": "WH-1",
+      "group": "security",
+      "topic": null,
+      "title": "HMAC signature header & rotation window",
+      "question": "Which signature header format and dual-secret rotation window do existing webhook consumers require?",
+      "context": "proposal.md (WH-1). Fact question: breaking existing consumer verification scripts must be avoided.",
+      "options": [
+        "X-Webhook-Signature: t=<unix>,v1=<hmac-sha256> with 24h dual-secret overlap",
+        "X-Hub-Signature-256: sha256=<hex> with 7-day overlap"
+      ],
+      "proposal": null,
+      "reason": "No proposal: fact question — Business/Partner Integrations knows what existing consumers already verify.",
+      "raci": { "BIZ": "AR", "ARCH": "C", "PO": "I" },
+      "ref": "WH-1",
+      "dependsOn": []
+    },
+    {
+      "id": "WH-2",
+      "group": "delivery",
+      "topic": null,
+      "title": "Retry window & backoff schedule",
+      "question": "For how long should failed webhook deliveries retry with exponential backoff?",
+      "context": "proposal.md (WH-2). Longer windows increase queue retention (Platform consulted on queue TTL).",
+      "options": [
+        "Up to 24 hours (10 attempts with exponential backoff)",
+        "Up to 72 hours (15 attempts with exponential backoff)",
+        "Up to 1 hour (5 quick retries)"
+      ],
+      "proposal": 0,
+      "reason": "24 hours survives typical partner maintenance windows without bloating dead-letter/retry queue retention.",
+      "raci": { "ARCH": "A", "PO": "C", "PLAT": "C" },
+      "ref": "WH-2",
+      "dependsOn": []
+    },
+    {
+      "id": "WH-3",
+      "group": "delivery",
+      "topic": null,
+      "title": "Dead-letter visibility for tenant admins",
+      "question": "Should tenant admins see dead-lettered webhook attempts in the UI in v1?",
+      "context": "proposal.md (WH-3). Adding a UI table expands scope beyond backend retry delivery.",
+      "options": [
+        "No UI in v1: log to ops/support only",
+        "Read-only failed delivery log in Tenant Settings"
+      ],
+      "proposal": 0,
+      "reason": "Keeps the OpenSpec delta strictly scoped to delivery reliability; UI can be a follow-up change.",
+      "raci": { "PO": "A", "BIZ": "C", "ARCH": "I" },
+      "ref": "WH-3",
+      "dependsOn": []
+    }
+  ],
+  "sources": [
+    "examples/openspec-webhooks/proposal.md (v0.1.0)",
+    "examples/generic-plan/context.json (reused shared team context)"
+  ]
+}

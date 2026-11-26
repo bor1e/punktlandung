@@ -120,6 +120,7 @@ ul.plain{margin:6px 0;padding-left:20px}ul.plain li{margin:4px 0}
 <nav id="nav"></nav>
 <div class="savebox">
 <button class="btn full" id="btnSave" type="button"></button>
+<button class="btn sec2 full" id="btnCopyQuick" type="button"></button>
 <div id="saveState"></div>
 </div>
 </aside>
@@ -137,7 +138,8 @@ var LANG=CTX.lang==='de'?'de':'en';
 var T={
  de:{
   roleLabel:'Ansicht', allRoles:'Gesamt (alle Rollen)', allRolesLower:'alle Rollen',
-  saveBtn:'Mit Antworten speichern',
+  saveBtn:'Mit Antworten speichern', copyQuickBtn:'Antworttext kopieren', emailBtn:'Per E-Mail senden',
+  roleHint:'Hinweis: Bitte links Ihre Rolle wählen, damit Ihre Entscheidungen eindeutig zugeordnet werden.',
   savedDraft:function(hh){return 'Zwischenstand in diesem Browser gesichert, '+hh+' Uhr. Zum Weitergeben: „Mit Antworten speichern“.'},
   noStorage:'Dieser Browser sichert keinen Zwischenstand. Bitte „Mit Antworten speichern“ nutzen.',
   savedFile:function(fn){return 'Datei „'+fn+'“ erzeugt und gespeichert.'},
@@ -195,7 +197,8 @@ var T={
  },
  en:{
   roleLabel:'View', allRoles:'All (all roles)', allRolesLower:'all roles',
-  saveBtn:'Save with answers',
+  saveBtn:'Save with answers', copyQuickBtn:'Copy reply text', emailBtn:'Send via email',
+  roleHint:'Tip: Select your role on the left so your decisions are attributed accurately.',
   savedDraft:function(hh){return 'Draft saved in this browser at '+hh+'. To send back: click "Save with answers".'},
   noStorage:'This browser blocks local storage. Please use "Save with answers".',
   savedFile:function(fn){return 'File "'+fn+'" saved with all embedded answers.'},
@@ -295,6 +298,7 @@ document.getElementById('brandName').textContent=SPEC.brand||SPEC.title||'Overvi
 document.getElementById('brandSub').textContent=SPEC.subtitle||CTX.org||'';
 document.getElementById('roleLabel').textContent=T.roleLabel;
 document.getElementById('btnSave').textContent=T.saveBtn;
+document.getElementById('btnCopyQuick').textContent=T.copyQuickBtn;
 
 /* ---------- State & TiddlyWiki Saver UX ---------- */
 var EMB={};try{EMB=JSON.parse(document.getElementById('saved').textContent||'{}')}catch(e){}
@@ -316,7 +320,9 @@ window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();
 function persist(){
  var ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
  var t=new Date(),hh=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
- document.getElementById('saveState').textContent=ok?T.savedDraft(hh):T.noStorage;
+ var msg=ok?T.savedDraft(hh):T.noStorage;
+ if(!S.role&&count(isDone)>0){msg+=' '+T.roleHint}
+ document.getElementById('saveState').textContent=msg;
 }
 function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function ans(id){return S.a[id]||{o:'',t:'',n:''}}
@@ -551,7 +557,8 @@ function summaryJson(){
 
 V.antworten=function(){
  var done=Q.filter(isDone),s='<h1>'+T.ansTitle+'</h1><p class="lead-in">'+T.ansLead+'</p>';
- s+='<div class="tools"><input class="name" type="text" id="name" placeholder="'+h(T.namePh)+'" value="'+h(S.name)+'"><button class="btn" type="button" data-save>'+T.saveBtn+'</button><button class="btn sec2" type="button" data-copy>'+T.copyText+'</button><button class="btn sec2" type="button" data-copy-json>'+T.copyJson+'</button><button class="link" type="button" data-reset>'+T.resetAll+'</button></div>';
+ s+='<div class="tools"><input class="name" type="text" id="name" placeholder="'+h(T.namePh)+'" value="'+h(S.name)+'"><button class="btn" type="button" data-save>'+T.saveBtn+'</button><button class="btn sec2" type="button" data-copy>'+T.copyText+'</button><button class="btn sec2" type="button" data-copy-json>'+T.copyJson+'</button><button class="btn sec2" type="button" data-mailto>'+T.emailBtn+'</button><button class="link" type="button" data-reset>'+T.resetAll+'</button></div>';
+ if(!S.role&&done.length){s+='<div class="banner">⚠ <span>'+h(T.roleHint)+'</span></div>'}
  if(!done.length){s+='<p class="small">'+T.noAnswers+'</p>'}
  else{
   s+='<div class="panel wide"><table><tr><th style="width:118px">'+T.colId+'</th><th>'+T.colQ+'</th><th>'+T.colDecider+'</th><th>'+T.colAnswer+'</th><th>'+T.colNote+'</th></tr>';
@@ -641,6 +648,7 @@ main.addEventListener('click',function(ev){
  if(t.hasAttribute('data-save')){saveHtml();return}
  if(t.hasAttribute('data-copy')){var ta=document.getElementById('sum');ta.value=summaryText();copyStr(ta.value,t);return}
  if(t.hasAttribute('data-copy-json')){copyStr(summaryJson(),t);return}
+ if(t.hasAttribute('data-mailto')){var subj=encodeURIComponent((SPEC.brand||SPEC.title)+' - '+T.sumHeader);var body=summaryText();if(body.length>1750){body=body.slice(0,1750)+'\n... (truncated; use Copy text for full summary)'}window.location.href='mailto:?subject='+subj+'&body='+encodeURIComponent(body);return}
  if(t.hasAttribute('data-reset')){if(confirm(T.resetConfirm)){S.a={};markDirty(true);persist();render()}return}
 });
 async function saveHtml(){
@@ -675,6 +683,7 @@ async function saveHtml(){
  document.getElementById('saveState').textContent=T.savedFile(filename);
 }
 document.getElementById('btnSave').addEventListener('click',saveHtml);
+document.getElementById('btnCopyQuick').addEventListener('click',function(){copyStr(summaryText(),this)});
 roleSel.innerHTML='<option value="">'+h(T.allRoles)+'</option>'+ORDER.map(function(p){return '<option value="'+h(p)+'"'+(S.role===p?' selected':'')+'>'+h(P[p].k)+'</option>'}).join('');
 roleSel.addEventListener('change',function(){S.role=roleSel.value;F.p=S.role;persist();render()});
 document.addEventListener('click',function(ev){

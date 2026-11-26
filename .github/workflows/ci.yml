@@ -12,11 +12,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Validate repository and generated HTMLs
+      - name: Validate repository, schemas, and all examples
         run: node scripts/validate.mjs
+      - name: Run automated test suite
+        run: node --test
       - name: Verify reproducible builds
         run: |
           node scripts/build.mjs examples/steuerbox/context.json examples/steuerbox/spec.json -o /tmp/example.html
-          node scripts/build.mjs examples/generic-plan/context.json examples/generic-plan/spec.json -o /tmp/open-points.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/generic-plan/spec.json -o /tmp/generic.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/speckit-sso/spec.json -o /tmp/speckit.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/openspec-webhooks/spec.json -o /tmp/openspec.html
           diff -u example.html /tmp/example.html
-          diff -u examples/generic-plan/open-points.html /tmp/open-points.html
+          diff -u examples/generic-plan/open-points.html /tmp/generic.html
+          diff -u examples/speckit-sso/open-points.html /tmp/speckit.html
+          diff -u examples/openspec-webhooks/open-points.html /tmp/openspec.html

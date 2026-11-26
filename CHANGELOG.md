@@ -2,6 +2,15 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.2.0 (2026-11-26)
+
+Hardened from a 5-perspective adversarial review (Spec Kit, OpenSpec, Copilot, Over-Engineering, and Business Ops):
+
+- **Scaffolding & Copilot support:** Added `scripts/init-case.mjs` (extracts `[NEEDS CLARIFICATION]`, tagged `OQ-x`/`Q-x`/`U-x`, or `- [ ]` items from any Markdown spec + generates a default `context.json`), `.github/copilot-instructions.md`, and `merge-answers.mjs --copilot-prompt`.
+- **Concrete Spec Kit & OpenSpec examples:** Added `examples/speckit-sso/` (5 `[NEEDS CLARIFICATION]` markers, 2 `mootWhen` branches) and `examples/openspec-webhooks/` (brownfield delta proposal), both reusing `examples/generic-plan/context.json`, plus `examples/README.md`.
+- **Real bug fixes:** Made `extractJsonIsland` attribute-order independent, fixed `scripts/build.mjs` template path resolution outside repo root, added role-selection reminder before saving, and added 1-click **Copy reply text** + **Send via email** (`mailto:`) fallbacks for Outlook/mobile readers.
+- **Automated tests & CI/CD badges:** Added zero-dependency `test/punktlandung.test.mjs` (`node --test`), reproducible build checks across all 4 examples in `ci.yml`, automatic GitHub Release creation in `version-bump.yml`, and README status/tag/license badges + Start-to-End ASCII workflow diagrams.
+
 ## 2.1.0 (2026-11-26)
 
 Adopted the best ideas from SurveyJS, TiddlyWiki, Spec Kit, and OpenSpec without adding any runtime dependencies:

@@ -26,7 +26,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump version or tag existing bump
+      - name: Bump version, tag, and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION_CHANGED=false
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
@@ -36,13 +38,18 @@ jobs:
           fi
 
           if [ "$VERSION_CHANGED" = true ]; then
-            VER="$(tr -d '[:space:]' < VERSION)"
-            if ! git rev-parse "v${VER}" >/dev/null 2>&1; then
-              git tag -a "v${VER}" -m "Release v${VER}"
-              git push origin "v${VER}"
+            TAG="v$(tr -d '[:space:]' < VERSION)"
+            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+              git tag -a "$TAG" -m "Release $TAG"
+              git push origin "$TAG"
             fi
           else
             NEXT="$(./scripts/bump-version.sh --from-commits --commit --tag)"
+            TAG="v${NEXT}"
             git push origin HEAD:main
-            git push origin "v${NEXT}"
+            git push origin "$TAG"
+          fi
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --generate-notes || true
           fi
