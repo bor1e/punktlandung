@@ -153,20 +153,36 @@
       "type": "object",
       "required": ["heading", "cards"],
       "properties": {
-        "heading": { "type": "string" },
+        "heading": { "type": "string", "minLength": 1 },
         "caption": { "type": "string" },
         "cards": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
-            "required": ["title", "blocks"],
+            "required": ["title"],
             "properties": {
-              "title": { "type": "string" },
-              "blocks": { "type": "array" }
-            }
+              "title": { "type": "string", "minLength": 1 },
+              "summary": { "type": "string" },
+              "bullets": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "image": { "$ref": "#/$defs/imageRef" },
+              "links": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/linkItem" }
+              },
+              "blocks": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/wireframeBlock" }
+              }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "extraRolesNote": { "type": "string" },
     "missing": {
@@ -197,6 +213,52 @@
     }
   },
   "$defs": {
+    "imageRef": {
+      "type": "object",
+      "required": ["src"],
+      "properties": {
+        "src": { "type": "string", "minLength": 1 },
+        "alt": { "type": "string" },
+        "caption": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "wireframeBlock": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "items"],
+          "properties": {
+            "type": { "type": "string", "enum": ["bar"] },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "primary": { "type": "boolean" }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "lines"],
+          "properties": {
+            "type": { "type": "string", "enum": ["box"] },
+            "lines": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "linkItem": {
       "type": "object",
       "required": ["label", "url"],

@@ -459,16 +459,22 @@ function renderComparison(comp){
  s+='<div class="wfs">';
  comp.cards.forEach(function(card){
   s+='<div class="wf"><b>'+h(card.title)+'</b>';
+  if(card.summary){s+='<p class="small" style="margin:0 0 8px">'+h(card.summary)+'</p>'}
+  if(card.image){
+   var imgSrc=safeDataImg(card.image.src);
+   if(imgSrc){s+='<figure class="wfimg"><img src="'+h(imgSrc)+'" alt="'+h(card.image.alt||'')+'">'+(card.image.caption?'<figcaption>'+h(card.image.caption)+'</figcaption>':'')+'</figure>'}
+  }
+  if(card.bullets&&card.bullets.length){
+   s+='<ul class="plain">'+card.bullets.map(function(x){return '<li>'+h(x)+'</li>'}).join('')+'</ul>';
+  }
   (card.blocks||[]).forEach(function(b){
    if(b.type==='bar'){
     s+='<div class="wfb">'+(b.items||[]).map(function(it){return '<span'+(it.primary?' class="b"':'')+'>'+h(it.text)+'</span>'}).join('')+'</div>';
    }else if(b.type==='box'){
     s+='<div class="wft">'+(b.lines||[]).map(h).join('<br>')+'</div>';
-   }else if(b.type==='img'){
-    var imgSrc=safeDataImg(b.src);
-    if(imgSrc){s+='<figure class="wfimg"><img src="'+h(imgSrc)+'" alt="'+h(b.alt||'')+'">'+(b.caption?'<figcaption>'+h(b.caption)+'</figcaption>':'')+'</figure>'}
    }
   });
+  var cl=linksHtml(card.links);if(cl){s+='<div class="extlinks" style="margin-top:8px">'+cl+'</div>'}
   s+='</div>';
  });
  s+='</div>';
@@ -662,6 +668,7 @@ V.quellen=function(){
  var seenUrls={},allLinks=[];
  function addLinks(arr){(arr||[]).forEach(function(l){var u=safeUrl(l&&l.url);if(u&&!seenUrls[u]){seenUrls[u]=true;allLinks.push(l)}})}
  addLinks(SPEC.links);GROUPS.forEach(function(g){addLinks(g.links)});Q.forEach(function(q){addLinks(q.links)});
+ if(SPEC.comparison&&Array.isArray(SPEC.comparison.cards)){SPEC.comparison.cards.forEach(function(c){addLinks(c.links)})}
  var allLinksHtml=linksHtml(allLinks);
  if(allLinksHtml){s+='<h2>'+T.linksTitle+'</h2><div class="panel"><div class="extlinks" style="padding:10px 0">'+allLinksHtml+'</div></div>'}
  if(SPEC.glossary&&SPEC.glossary.length){s+='<h2>'+T.glossaryTitle+'</h2><div class="panel wide"><table>'+SPEC.glossary.map(function(g){return '<tr><td style="width:170px"><b>'+h(g[0])+'</b></td><td>'+h(g[1])+'</td></tr>'}).join('')+'</table></div>'}

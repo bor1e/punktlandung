@@ -34,8 +34,41 @@ if (!ctxArg || !specArg || !outArg) {
 
 const root = process.cwd();
 const templatePath = path.resolve(__dirname, '..', 'template', 'overview.html');
+const specPath = path.resolve(root, specArg);
+const specDir = path.dirname(specPath);
 const context = JSON.parse(fs.readFileSync(path.resolve(root, ctxArg), 'utf8'));
-const spec = JSON.parse(fs.readFileSync(path.resolve(root, specArg), 'utf8'));
+const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+
+const IMAGE_MIME = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml'
+};
+
+if (spec.comparison && Array.isArray(spec.comparison.cards)) {
+  for (const card of spec.comparison.cards) {
+    const rawSrc = typeof card?.image?.src === 'string' ? card.image.src.trim() : '';
+    if (!rawSrc) continue;
+    if (/^(?:data:|https?:|javascript:)/i.test(rawSrc)) continue;
+    const imgPath = path.resolve(specDir, rawSrc);
+    const ext = path.extname(imgPath).toLowerCase();
+    const mime = IMAGE_MIME[ext];
+    if (!mime) {
+      console.error(`ERROR: Unsupported comparison image extension "${ext}" for "${rawSrc}" (use .png, .jpg, .jpeg, .webp, .gif, or .svg).`);
+      process.exit(1);
+    }
+    if (!fs.existsSync(imgPath)) {
+      console.error(`ERROR: comparison image not found: ${rawSrc}`);
+      process.exit(1);
+    }
+    const buf = fs.readFileSync(imgPath);
+    card.image.src = `data:${mime};base64,${buf.toString('base64')}`;
+  }
+}
+
 const payload = { context, spec };
 
 const { errs, stats } = validatePayload(payload, `${specArg}`, { allowDraft: isDraft });

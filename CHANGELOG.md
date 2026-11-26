@@ -2,6 +2,14 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.8.0 (2026-11-26)
+
+Strict standard `init-case` contract and typed comparison cards with build-time image inlining:
+
+- **Strict 3-rule `init-case.mjs` contract:** Removed bespoke German/house-style heuristics (`Offene Stellen`, `TODO(...)`, `**Nicht nachweisbar:**`, `> Version:`) and reverted `init` to one documented standard (`[NEEDS CLARIFICATION: ...]`, `## Open Questions`, `- OQ-1:` / `- Q-1:`). Exits with code `1` and clear guidance when 0 open points match instead of inventing a fake placeholder `Q-1`.
+- **Typed `comparison` cards with build-time local image inlining (`schema/spec.schema.json`, `scripts/build.mjs`, `scripts/validate.mjs`, `template/overview.html`):** Strictly typed `comparison.cards[]` (`title`, `summary`, `bullets[]`, `image: { src, alt?, caption? }`, `links[]`, and legacy `wireframeBlock` `bar`/`box` blocks); `build.mjs` automatically inlines local `.png`/`.jpg`/`.webp`/`.gif`/`.svg` paths into `data:image/...;base64,...` so `spec.json` stays clean and diffable while the output HTML remains 100% offline.
+- **Kept from `v2.7.0`:** Stale `localStorage` draft protection (`oh` + `specHash`), clickable `links[]`, and optional `parties[].contact`.
+
 ## 2.7.0 (2026-11-26)
 
 Real-world German spec extraction, stale `localStorage` draft protection, named contacts, and offline comparison screenshots:

@@ -888,10 +888,10 @@ describe('merge-answers.mjs', () => {
     assert.ok(els.main.innerHTML.includes('1 draft answer(s) were cleared'));
   });
 
-  it('extracts German real-spec conventions in init-case (> Version:, Offene Stellen, TODO(...), Nicht nachweisbar)', () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-de-'));
+  it('fails loudly in init-case when non-standard prose matches none of the 3 standard conventions', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-strict-'));
     try {
-      const planPath = path.join(tmpDir, 'feature-set.md');
+      const planPath = path.join(tmpDir, 'bespoke.md');
       const outDir = path.join(tmpDir, 'out');
       fs.writeFileSync(planPath, [
         '# Feature-Set Steuerbox',
@@ -900,94 +900,131 @@ describe('merge-answers.mjs', () => {
         '',
         '## Offene Stellen',
         '- TODO(new-1): Soll ein Entwurf automatisch verfallen?',
-        '- Wie hoch ist das Export-Limit?',
-        '',
-        '## Fachlicher Ablauf',
-        'Im Fehlerfall greift TODO(new-2): Fehlercode im CSV-Header protokollieren.',
-        '',
-        '**Nicht nachweisbar:** Die bestehende Schnittstelle liefert immer UTF-8.',
-        '',
-        '**Nicht nachweisbar:**',
-        '- Antwortzeit unter 200ms unter Volllast'
+        '**Nicht nachweisbar:** Die bestehende Schnittstelle liefert immer UTF-8.'
       ].join('\n'));
-      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), planPath, '--out-dir', outDir, '--lang', 'de'], { encoding: 'utf8' });
-      const spec = JSON.parse(fs.readFileSync(path.join(outDir, 'spec.json'), 'utf8'));
-      assert.equal(spec.spec.version, '0.2.0');
-      assert.equal(spec.spec.openCount, 3);
-      assert.equal(spec.spec.unprovableCount, 2);
-      assert.equal(spec.questions.length, 5);
-      assert.ok(spec.questions.some((q) => q.id === 'TODO-new-1'));
-      assert.ok(spec.questions.some((q) => q.id === 'TODO-new-2'));
-      assert.ok(spec.questions.some((q) => q.id === 'U-1'));
-      assert.ok(spec.questions.some((q) => q.id === 'U-2'));
+      let exitCode = 0;
+      let errMsg = '';
+      try {
+        execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), planPath, '--out-dir', outDir], { encoding: 'utf8', stdio: 'pipe' });
+      } catch (err) {
+        exitCode = err.status;
+        errMsg = String(err.stderr);
+      }
+      assert.equal(exitCode, 1);
+      assert.ok(errMsg.includes('No open points found'));
+      assert.ok(errMsg.includes('[NEEDS CLARIFICATION: ...]'));
+      assert.ok(errMsg.includes('## Open Questions'));
+      assert.ok(!fs.existsSync(path.join(outDir, 'spec.json')), 'must not emit fake placeholder spec.json on 0 matches');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 
-  it('validates and renders parties[].contact and inline base64 comparison images cleanly', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
-    const payload = structuredClone(extractJsonIsland(html, 'spec-data'));
-    payload.context.parties[0].contact = 'Clara Compliance <clara@example.com>';
-    payload.spec.comparison = {
-      heading: 'Mockups',
-      cards: [{
-        title: 'Variant A',
-        blocks: [{
-          type: 'img',
-          src: 'data:image/png;base64,iVBORw0KGgo=',
-          alt: 'Wireframe A',
-          caption: 'Offline PNG preview'
+  it('inlines local comparison card images at build time, validates contact/links/bullets, and renders cleanly', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-comp-opt-a-'));
+    try {
+      const ctx = JSON.parse(fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'context.json'), 'utf8'));
+      ctx.parties[0].contact = 'Clara Compliance <clara@example.com>';
+      const spec = JSON.parse(fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'spec.json'), 'utf8'));
+      const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+      fs.writeFileSync(path.join(tmpDir, 'mockup.png'), pngBytes);
+      spec.comparison = {
+        heading: 'Design Options',
+        caption: 'Side-by-side summary before sign-off',
+        cards: [{
+          title: 'Option A · Inline Export',
+          summary: 'Direct CSV download with hard row cap.',
+          bullets: ['Zero queue infrastructure', 'Sub-500 ms for < 5,000 rows'],
+          image: { src: './mockup.png', alt: 'Mockup A', caption: 'Inlined PNG preview' },
+          links: [{ label: 'Figma Mockup', url: 'https://www.figma.com/design/abc' }]
         }]
-      }]
-    };
-    assert.deepEqual(validatePayload(payload, 'contact-img-ok').errs, []);
+      };
+      const ctxPath = path.join(tmpDir, 'context.json');
+      const specPath = path.join(tmpDir, 'spec.json');
+      const outHtmlPath = path.join(tmpDir, 'out.html');
+      fs.writeFileSync(ctxPath, JSON.stringify(ctx, null, 2));
+      fs.writeFileSync(specPath, JSON.stringify(spec, null, 2));
 
-    const badImg = structuredClone(payload);
-    badImg.spec.comparison.cards[0].blocks[0].src = 'https://evil.example/track.png';
-    const { errs } = validatePayload(badImg, 'bad-img');
-    assert.ok(errs.some((e) => e.includes('data:image/')));
+      // Reject remote URL and missing local file
+      const badRemote = structuredClone({ context: ctx, spec });
+      badRemote.spec.comparison.cards[0].image.src = 'https://evil.example/track.png';
+      assert.ok(validatePayload(badRemote, 'remote-img').errs.some((e) => e.includes('data:image/')));
 
-    const savedData = extractJsonIsland(html, 'saved');
-    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
-    const appScript = scripts[scripts.length - 1][1];
-    const makeEl = (id) => ({
-      id,
-      innerHTML: '',
-      textContent: id === 'spec-data' ? JSON.stringify(payload) : id === 'saved' ? JSON.stringify(savedData) : '',
-      value: '',
-      classList: { toggle: () => {}, contains: () => false },
-      addEventListener: () => {},
-      querySelector: () => null,
-      querySelectorAll: () => []
-    });
-    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
-    const ctx = {
-      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
-      encodeURIComponent, decodeURIComponent, unescape, escape,
-      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
-      setTimeout, clearTimeout,
-      alert: () => {},
-      confirm: () => true,
-      location: { hash: '#ueberblick' },
-      history: { pushState: () => {} },
-      localStorage: { getItem: () => null, setItem: () => {} },
-      navigator: { clipboard: { writeText: () => Promise.resolve() } },
-      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
-      document: {
-        getElementById: (id) => els[id] || makeEl(id),
-        addEventListener: () => {},
-        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
-        body: { appendChild: () => {} },
-        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      // Build inlines ./mockup.png into out.html without modifying spec.json on disk
+      execFileSync('node', [path.join(ROOT, 'scripts', 'build.mjs'), ctxPath, specPath, '-o', outHtmlPath], { encoding: 'utf8' });
+      const specOnDisk = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+      assert.equal(specOnDisk.comparison.cards[0].image.src, './mockup.png');
+
+      // Validate built HTML standalone
+      execFileSync('node', [path.join(ROOT, 'scripts', 'validate.mjs'), outHtmlPath], { encoding: 'utf8' });
+
+      // Reject missing local image cleanly
+      const missingSpecPath = path.join(tmpDir, 'missing-spec.json');
+      const missingSpec = structuredClone(spec);
+      missingSpec.comparison.cards[0].image.src = './does-not-exist.png';
+      fs.writeFileSync(missingSpecPath, JSON.stringify(missingSpec, null, 2));
+      let missingExit = 0;
+      try {
+        execFileSync('node', [path.join(ROOT, 'scripts', 'build.mjs'), ctxPath, missingSpecPath, '-o', path.join(tmpDir, 'fail.html')], { stdio: 'pipe' });
+      } catch (err) {
+        missingExit = err.status;
       }
-    };
-    vm.runInNewContext(appScript, ctx);
-    assert.ok(els.main.innerHTML.includes('<figure class="wfimg"><img src="data:image/png;base64,iVBORw0KGgo=" alt="Wireframe A"><figcaption>Offline PNG preview</figcaption></figure>'));
+      assert.equal(missingExit, 1);
 
-    ctx.location = { hash: '#raci' };
-    vm.runInNewContext(appScript, ctx);
-    assert.ok(els.main.innerHTML.includes('Clara Compliance &lt;clara@example.com&gt;'));
+      // Render built HTML in node:vm and confirm comparison card + #quellen + #raci contact render
+      const builtHtml = fs.readFileSync(outHtmlPath, 'utf8');
+      const payload = extractJsonIsland(builtHtml, 'spec-data');
+      const savedData = extractJsonIsland(builtHtml, 'saved');
+      const scripts = [...builtHtml.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+      const appScript = scripts[scripts.length - 1][1];
+      const makeEl = (id) => ({
+        id,
+        innerHTML: '',
+        textContent: id === 'spec-data' ? JSON.stringify(payload) : id === 'saved' ? JSON.stringify(savedData) : '',
+        value: '',
+        classList: { toggle: () => {}, contains: () => false },
+        addEventListener: () => {},
+        querySelector: () => null,
+        querySelectorAll: () => []
+      });
+      const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+      const vmCtx = {
+        JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+        encodeURIComponent, decodeURIComponent, unescape, escape,
+        btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+        setTimeout, clearTimeout,
+        alert: () => {},
+        confirm: () => true,
+        location: { hash: '#ueberblick' },
+        history: { pushState: () => {} },
+        localStorage: { getItem: () => null, setItem: () => {} },
+        navigator: { clipboard: { writeText: () => Promise.resolve() } },
+        window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+        document: {
+          getElementById: (id) => els[id] || makeEl(id),
+          addEventListener: () => {},
+          createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+          body: { appendChild: () => {} },
+          documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+        }
+      };
+      vm.runInNewContext(appScript, vmCtx);
+      assert.ok(els.main.innerHTML.includes('Direct CSV download with hard row cap.'));
+      assert.ok(els.main.innerHTML.includes('Zero queue infrastructure'));
+      assert.ok(els.main.innerHTML.includes('<figure class="wfimg"><img src="data:image/png;base64,'));
+      assert.ok(els.main.innerHTML.includes('Inlined PNG preview</figcaption>'));
+      assert.ok(els.main.innerHTML.includes('>Figma<') && els.main.innerHTML.includes('Figma Mockup'));
+
+      vmCtx.location = { hash: '#raci' };
+      vm.runInNewContext(appScript, vmCtx);
+      assert.ok(els.main.innerHTML.includes('Clara Compliance &lt;clara@example.com&gt;'));
+
+      vmCtx.location = { hash: '#quellen' };
+      vm.runInNewContext(appScript, vmCtx);
+      assert.ok(els.main.innerHTML.includes('Figma Mockup'));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
 

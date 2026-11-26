@@ -350,13 +350,13 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
   }
   if (spec.comparison && Array.isArray(spec.comparison.cards)) {
     spec.comparison.cards.forEach((card, ci) => {
-      (card?.blocks || []).forEach((b, bi) => {
-        if (b && b.type === 'img') {
-          if (typeof b.src !== 'string' || !/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=\s]+$/i.test(b.src.trim())) {
-            errs.push(`${label}: comparison.cards[${ci}].blocks[${bi}] image src must be inline data:image/...;base64,... to keep HTML offline`);
-          }
+      if (!card || typeof card !== 'object') return;
+      validateLinks(card.links, `${label}: comparison.cards[${ci}]`, errs);
+      if (card.image !== undefined && card.image !== null && typeof card.image === 'object') {
+        if (typeof card.image.src !== 'string' || !/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=\s]+$/i.test(card.image.src.trim())) {
+          errs.push(`${label}: comparison.cards[${ci}].image.src must be an inlined data:image/...;base64,... URI (or a local image file inlined via build.mjs)`);
         }
-      });
+      }
     });
   }
 

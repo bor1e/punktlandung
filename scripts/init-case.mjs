@@ -36,10 +36,7 @@ const titleMatch = md.match(/^#\s+(.+)$/m);
 const title = titleMatch ? titleMatch[1].replace(/^(Feature Plan|Specification|Proposal|Change):\s*/i, '').trim() : path.basename(inPath, path.extname(inPath));
 const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'open-points';
 const logo = slug.split('-').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'PL';
-const verMatch =
-  md.match(/\*\*Version:\*\*\s*([^\s,|]+)/i) ||
-  md.match(/^>\s*(?:\*\*)?Version(?:\*\*)?:\s*([^\s,|]+)/im) ||
-  md.match(/^Version:\s*([^\s,|]+)/im);
+const verMatch = md.match(/\*\*Version:\*\*\s*([^\s,|]+)/i);
 const specVersion = verMatch ? verMatch[1] : '0.1.0';
 const relInput = path.relative(root, inPath) || path.basename(inPath);
 
@@ -71,11 +68,10 @@ function pushUniqueLinks(target, items) {
   }
 }
 
-// Extract open points from:
+// Extract open points using the strict 3-rule Markdown contract:
 // 1. [NEEDS CLARIFICATION: ...] anywhere
-// 2. Explicit open-point IDs (OQ-x, OPEN-x, Q-x, U-x, TODO-x) and TODO(...) anywhere — never US-x / FR-x / REQ-x
-// 3. Bold paragraph/list markers (**Nicht nachweisbar:**, **Unprovable:**, **Offene Stellen:**, ...)
-// 4. Plain bullets or numbered items inside Open Questions / Offene Stellen / Clarifications / Unprovable headings (including sub-headings)
+// 2. Explicit OQ-<n>: / Q-<n>: bullets anywhere (never US-x / FR-x / REQ-x)
+// 3. Plain bullets or numbered items under ## Open Questions (including sub-headings)
 const extracted = [];
 const topLinks = [];
 const seenIds = new Set();
@@ -90,26 +86,19 @@ function uniqueId(base) {
 }
 
 let idx = 1;
-let uIdx = 1;
 let openSectionLevel = 0;
-let openSectionIsUnprovable = false;
 let linkSectionLevel = 0;
-let boldBlockKind = '';
-const OPEN_HEADING_RE = /\b(open\s+(?:questions?|points?|decisions?)|pending\s+decisions?|decisions?\s+(?:needed|required)|clarifications?|offene\s+(?:fragen|punkte|stellen|entscheidungen)|unprovable|nicht\s+nachweisbar|todo)\b/i;
-const UNPROVABLE_HEADING_RE = /\b(unprovable|nicht\s+nachweisbar)\b/i;
-const LINKS_HEADING_RE = /\b(links?|references?|sources?|referenzen|quellen)\b/i;
+const OPEN_HEADING_RE = /\bopen\s+questions?\b/i;
+const LINKS_HEADING_RE = /\b(links?|references?|sources?)\b/i;
 
 for (const line of md.split(/\r?\n/)) {
   const heading = line.match(/^(#{1,6})\s+(.+)$/);
   if (heading) {
-    boldBlockKind = '';
     const level = heading[1].length;
     if (OPEN_HEADING_RE.test(heading[2])) {
       openSectionLevel = level;
-      openSectionIsUnprovable = UNPROVABLE_HEADING_RE.test(heading[2]);
     } else if (openSectionLevel > 0 && level <= openSectionLevel) {
       openSectionLevel = 0;
-      openSectionIsUnprovable = false;
     }
     if (LINKS_HEADING_RE.test(heading[2])) {
       linkSectionLevel = level;
@@ -122,72 +111,26 @@ for (const line of md.split(/\r?\n/)) {
 
   const ncMatches = [...line.matchAll(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/gi)];
   if (ncMatches.length > 0) {
-    boldBlockKind = '';
     for (const nc of ncMatches) {
       const parsed = extractMdLinks(nc[1]);
-      extracted.push({ id: uniqueId(`Q-${idx++}`), text: parsed.text, ref: `[NEEDS CLARIFICATION]`, isUnprovable: false, links: parsed.links });
+      extracted.push({ id: uniqueId(`Q-${idx++}`), text: parsed.text, ref: `[NEEDS CLARIFICATION]`, links: parsed.links });
     }
     continue;
   }
 
-  const tagged = line.match(/^\s*[-*]\s+`?((?:OQ|OPEN|Q|U|TODO)-\d+)`?(?:\s*\([^)]*\))?:\s*(.+)$/i);
+  const tagged = line.match(/^\s*[-*]\s+`?((?:OQ|Q)-\d+)`?(?:\s*\([^)]*\))?:\s*(.+)$/i);
   if (tagged) {
-    boldBlockKind = '';
     const parsed = extractMdLinks(tagged[2]);
     const rawId = tagged[1].toUpperCase();
-    extracted.push({ id: uniqueId(rawId), text: parsed.text, ref: rawId, isUnprovable: /^U-/.test(rawId) || openSectionIsUnprovable, links: parsed.links });
+    extracted.push({ id: uniqueId(rawId), text: parsed.text, ref: rawId, links: parsed.links });
     continue;
   }
 
-  const boldMarker = line.match(/^\s*(?:[-*]\s+)?\*\*(Nicht\s+nachweisbar|Unprovable|Offene\s+(?:Stellen|Fragen|Punkte)|Open\s+(?:Questions?|Points?))\s*:?\*\*\s*:?\s*(.*)$/i);
-  if (boldMarker) {
-    const label = boldMarker[1].trim();
-    const isUnprovable = /nicht\s+nachweisbar|unprovable/i.test(label);
-    const trailing = boldMarker[2].replace(/^[:–—-]\s*/, '').trim();
-    if (trailing) {
-      boldBlockKind = '';
-      const parsed = extractMdLinks(trailing);
-      extracted.push({
-        id: uniqueId(isUnprovable ? `U-${uIdx++}` : `Q-${idx++}`),
-        text: parsed.text,
-        ref: label,
-        isUnprovable,
-        links: parsed.links
-      });
-    } else {
-      boldBlockKind = isUnprovable ? 'unprovable' : 'open';
-    }
-    continue;
-  }
-
-  const todoParens = [...line.matchAll(/TODO\(([^)]+)\)(?:\s*:\s*([^|\n]+))?/gi)];
-  if (todoParens.length > 0) {
-    boldBlockKind = '';
-    for (const tp of todoParens) {
-      const inner = tp[1].trim();
-      const rawCandidate = tp[2]
-        ? tp[2].replace(/\*\*$/g, '').trim()
-        : line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, '').replace(/`/g, '').trim();
-      const parsed = extractMdLinks(rawCandidate);
-      const slugId = inner.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-|-$/g, '') || String(idx++);
-      const normId = uniqueId(`TODO-${slugId}`);
-      extracted.push({
-        id: normId,
-        text: parsed.text || `TODO(${inner})`,
-        ref: `TODO(${inner})`,
-        isUnprovable: openSectionIsUnprovable || /nicht\s+nachweisbar|unprovable/i.test(rawCandidate),
-        links: parsed.links
-      });
-    }
-    continue;
-  }
-
-  if (inOpenSection || boldBlockKind) {
+  if (inOpenSection) {
     const item = line.match(/^\s*(?:[-*]|\d+[.)])\s+(?:\[\s\]\s+)?(.+)$/);
     if (item) {
-      const isUnprovable = boldBlockKind === 'unprovable' || (!boldBlockKind && openSectionIsUnprovable);
       let rawText = item[1].trim();
-      let baseId = isUnprovable ? `U-${uIdx++}` : `Q-${idx++}`;
+      let baseId = `Q-${idx++}`;
       let ref = baseId;
       const prefix = rawText.match(/^(?:`|\*\*)?([A-Z]{1,4}-?\d+)(?:`|\*\*)?:\s*(.+)$/);
       if (prefix) {
@@ -196,20 +139,9 @@ for (const line of md.split(/\r?\n/)) {
         rawText = prefix[2].trim();
       }
       const parsed = extractMdLinks(rawText);
-      extracted.push({ id: uniqueId(baseId), text: parsed.text, ref, isUnprovable, links: parsed.links });
+      extracted.push({ id: uniqueId(baseId), text: parsed.text, ref, links: parsed.links });
       continue;
     }
-    if (boldBlockKind && line.trim() !== '') {
-      boldBlockKind = '';
-    }
-  }
-
-  const todo = line.match(/^\s*[-*]\s+\[\s\]\s+(.+)$/);
-  if (todo && /(\?|\btbd\b|\btodo\b|\bclarify\b)/i.test(todo[1])) {
-    boldBlockKind = '';
-    const parsed = extractMdLinks(todo[1]);
-    extracted.push({ id: uniqueId(`Q-${idx++}`), text: parsed.text, ref: 'TODO', isUnprovable: false, links: parsed.links });
-    continue;
   }
 
   if (linkSectionLevel > 0 || /^\s*(?:[-*]\s*)?(?:figma|jira|confluence|github|gitlab|azure\s*devops|ado|spec|prd|design)\s*:\s*/i.test(line)) {
@@ -219,17 +151,16 @@ for (const line of md.split(/\r?\n/)) {
 }
 
 if (extracted.length === 0) {
-  extracted.push({
-    id: 'Q-1',
-    text: `Clarify primary open point in ${path.basename(inPath)}`,
-    ref: 'Q-1',
-    isUnprovable: false,
-    links: []
-  });
+  console.error([
+    `ERROR: No open points found in "${relInput}".`,
+    'init-case.mjs expects one of the 3 standard Markdown conventions:',
+    '  1. [NEEDS CLARIFICATION: ...]',
+    '  2. Bullets or numbered items under "## Open Questions"',
+    '  3. Explicit "- OQ-1: ..." or "- Q-1: ..." items',
+    'For non-standard prose specs, use skills/open-points-overview/SKILL.md to generate spec.json directly.'
+  ].join('\n'));
+  process.exit(1);
 }
-
-const unprovableCount = extracted.filter((item) => item.isUnprovable).length;
-const openCount = extracted.length - unprovableCount;
 
 const spec = {
   id: slug,
@@ -242,8 +173,8 @@ const spec = {
     file: relInput,
     version: specVersion,
     date: new Date().toISOString().slice(0, 10),
-    openCount,
-    unprovableCount
+    openCount: extracted.length,
+    unprovableCount: 0
   },
   ...(topLinks.length > 0 ? { links: topLinks } : {}),
   groups: [{ id: 'open', title: lang === 'de' ? 'Offene Punkte' : 'Open Points' }],

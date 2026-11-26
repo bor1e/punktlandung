@@ -73,7 +73,7 @@ npx github:bor1e/punktlandung#v2.4.0 build my-case/context.json my-case/spec.jso
 npx github:bor1e/punktlandung#v2.4.0 merge --copilot-prompt my-case/open-points.html returned-biz.html replies.txt
 ```
 
-*(Pin a release tag like `#v2.4.0` for reproducible runs. Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
+*(Pin a release tag like `#v2.4.0` for reproducible runs. `init` supports `[NEEDS CLARIFICATION: ...]`, `## Open Questions`, and `- OQ-1:` / `- Q-1:` — failing loudly on non-standard prose so your AI agent generates `spec.json` directly via [`SKILL.md`](skills/open-points-overview/SKILL.md). Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
 
 ---
 
