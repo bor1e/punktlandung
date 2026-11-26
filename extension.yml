@@ -1,0 +1,54 @@
+schema_version: "1.0"
+
+extension:
+  id: "punktlandung"
+  name: "Punktlandung — Multiplayer /clarify"
+  version: "2.4.0"
+  description: "Turn open points from spec.md into one offline HTML page with RACI ownership for non-Git stakeholders, and merge replies back."
+  category: "process"
+  effect: "read-write"
+  author: "Elyahu Borodin"
+  repository: "https://github.com/bor1e/punktlandung"
+  license: "MIT"
+  homepage: "https://bor1e.github.io/punktlandung/"
+
+requires:
+  speckit_version: ">=0.1.0"
+  tools:
+    - name: "node"
+      version: ">=20.0.0"
+      required: true
+
+provides:
+  commands:
+    - name: "speckit.punktlandung.clarify"
+      file: "commands/speckit.punktlandung.clarify.md"
+      description: "Generate an offline RACI open-points HTML page from spec.md for non-Git stakeholders"
+    - name: "speckit.punktlandung.merge"
+      file: "commands/speckit.punktlandung.merge.md"
+      description: "Merge returned stakeholder HTML files or PKL1: codes back into spec.md"
+  config:
+    - name: "punktlandung-config.yml"
+      template: "config-template.yml"
+      description: "Team context path, language, and output directory for Punktlandung"
+      required: false
+
+hooks:
+  after_clarify:
+    command: "speckit.punktlandung.clarify"
+    optional: true
+    prompt: "Generate an offline Punktlandung HTML page for non-Git stakeholders to decide remaining open points?"
+    description: "Turns remaining [NEEDS CLARIFICATION] markers and open points in spec.md into one offline RACI HTML page"
+    condition: null
+
+tags:
+  - "clarify"
+  - "requirements"
+  - "raci"
+  - "stakeholders"
+  - "offline-html"
+
+defaults:
+  context_path: ".specify/extensions/punktlandung/context.json"
+  lang: "en"
+  output_filename: "open-points.html"

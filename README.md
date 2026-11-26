@@ -63,17 +63,36 @@ Requires **Node.js 20+**:
 
 ```bash
 # 1. Scaffold spec.json (+ default context.json) from any plan.md / Spec Kit spec.md / OpenSpec proposal.md
-npx github:bor1e/punktlandung#v2.3.2 init path/to/plan.md --out-dir my-case
+npx github:bor1e/punktlandung#v2.4.0 init path/to/plan.md --out-dir my-case
 
 # 2. Refine options, proposals, and RACI (yourself or with your AI agent via AGENTS.md / SKILL.md),
 #    then compile one offline HTML file:
-npx github:bor1e/punktlandung#v2.3.2 build my-case/context.json my-case/spec.json -o my-case/open-points.html
+npx github:bor1e/punktlandung#v2.4.0 build my-case/context.json my-case/spec.json -o my-case/open-points.html
 
 # 3. Merge returned .html copies or pasted PKL1: reply codes into an AI-ready patch:
-npx github:bor1e/punktlandung#v2.3.2 merge --copilot-prompt my-case/open-points.html returned-biz.html replies.txt
+npx github:bor1e/punktlandung#v2.4.0 merge --copilot-prompt my-case/open-points.html returned-biz.html replies.txt
 ```
 
-*(Pin a release tag like `#v2.3.2` for reproducible runs. Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
+*(Pin a release tag like `#v2.4.0` for reproducible runs. Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
+
+---
+
+## Install as a GitHub Spec Kit Extension (`hooks.after_clarify`)
+
+If you already use **[GitHub Spec Kit](https://github.com/github/spec-kit)**, install Punktlandung as an extension so every `/speckit.clarify` run prompts to generate a stakeholder HTML page when non-Git decisions remain:
+
+```bash
+# Install directly from the v2.4.0 release tag
+specify extension add punktlandung \
+  --from https://github.com/bor1e/punktlandung/archive/refs/tags/v2.4.0.zip
+
+# Or during local development
+specify extension add --dev ./punktlandung
+```
+
+This registers an optional `hooks.after_clarify` trigger plus two slash commands:
+- `/speckit.punktlandung.clarify` — turns remaining `[NEEDS CLARIFICATION]` markers / open questions in `spec.md` into `open-points.html`.
+- `/speckit.punktlandung.merge` — reconciles returned `.html` copies or `PKL1:` codes by `A`-decider authority and updates `spec.md` before `/speckit.plan`.
 
 ---
 
@@ -131,6 +150,7 @@ Three English examples **reuse the exact same `context.json`** (`examples/generi
 | [scripts/cli.mjs](scripts/cli.mjs), [scripts/init-case.mjs](scripts/init-case.mjs), [scripts/build.mjs](scripts/build.mjs), [scripts/merge-answers.mjs](scripts/merge-answers.mjs), [scripts/validate.mjs](scripts/validate.mjs) | Zero-dependency `npx` CLI, Markdown scaffolder, HTML compiler, multi-file/`PKL1:` merger, and invariant validator. |
 | [test/punktlandung.test.mjs](test/punktlandung.test.mjs) | Automated `node --test` suite covering extraction, validation, building, scaffolding, and answer merging. |
 | [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), [.github/copilot-instructions.md](.github/copilot-instructions.md), [skills/open-points-overview/SKILL.md](skills/open-points-overview/SKILL.md) | Cross-agent instructions, skill definition, and Copilot slash prompt. |
+| [extension.yml](extension.yml), [config-template.yml](config-template.yml), [commands/](commands/) | Official GitHub Spec Kit extension (`hooks.after_clarify`, `/speckit.punktlandung.clarify`, `/speckit.punktlandung.merge`). |
 | [docs/index.html](docs/index.html), [.github/workflows/](.github/workflows/), [.githooks/](.githooks/), [scripts/bump-version.sh](scripts/bump-version.sh) | GitHub Pages live demos, CI test/build checks, automatic SemVer tagging & GitHub Releases. |
 
 ---
@@ -162,6 +182,6 @@ Released under the **[MIT License](LICENSE)**:
 ## Versioning & CI/CD
 
 - **Validate & test locally:** `node scripts/validate.mjs && node --test`
-- **Version sync:** [VERSION](VERSION), [package.json](package.json), and [SKILL.md](skills/open-points-overview/SKILL.md) (`version:`) stay in sync.
+- **Version sync:** [VERSION](VERSION), [package.json](package.json), [extension.yml](extension.yml), and [SKILL.md](skills/open-points-overview/SKILL.md) (`version:`) stay in sync.
 - **Manual bump:** `./scripts/bump-version.sh [patch|minor|major] [--commit] [--tag]`
 - **Automated CI/CD:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs validation, `node --test`, and reproducible build diffs; [.github/workflows/pages.yml](.github/workflows/pages.yml) deploys live demos to GitHub Pages; [.github/workflows/version-bump.yml](.github/workflows/version-bump.yml) auto-bumps from conventional commits on `main`, pushes `v*` tags, and creates GitHub Releases.

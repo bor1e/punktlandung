@@ -1,0 +1,12 @@
+# Optional configuration for the Punktlandung Spec Kit extension.
+# Copy to .specify/extensions/punktlandung/punktlandung-config.yml to customize.
+
+settings:
+  # Reusable team context (roles, colors, isPlatform guards, constraints)
+  context_path: ".specify/extensions/punktlandung/context.json"
+  # Output UI language: "en" or "de"
+  lang: "en"
+  # Subdirectory inside the active feature folder for generated clarification artifacts
+  output_dir: "clarifications"
+  # Generated self-contained HTML filename
+  output_filename: "open-points.html"

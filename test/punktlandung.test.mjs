@@ -543,3 +543,22 @@ describe('merge-answers.mjs', () => {
     assert.equal(merged.moot[0].id, 'SC-2');
   });
 });
+
+describe('Spec Kit extension manifest', () => {
+  it('defines schema_version 1.0, after_clarify hook, and existing command/config files matching VERSION', () => {
+    const version = fs.readFileSync(path.join(ROOT, 'VERSION'), 'utf8').trim();
+    const yml = fs.readFileSync(path.join(ROOT, 'extension.yml'), 'utf8');
+    assert.match(yml, /^schema_version:\s*["']?1\.0["']?\s*$/m);
+    assert.match(yml, /^\s*id:\s*["']?punktlandung["']?\s*$/m);
+    assert.match(yml, new RegExp(`^\\s*version:\\s*["']?${version.replace(/\./g, '\\.')}["']?\\s*$`, 'm'));
+    assert.match(yml, /after_clarify:[\s\S]*?command:\s*["']?speckit\.punktlandung\.clarify["']?/m);
+    for (const rel of [
+      'config-template.yml',
+      'commands/speckit.punktlandung.clarify.md',
+      'commands/speckit.punktlandung.merge.md'
+    ]) {
+      const content = fs.readFileSync(path.join(ROOT, rel), 'utf8').trim();
+      assert.ok(content.length > 20, `${rel} must be non-empty`);
+    }
+  });
+});

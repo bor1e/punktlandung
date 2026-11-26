@@ -107,12 +107,18 @@ if (fs.existsSync("package.json")) {
   pkg.version = next;
   fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n", "utf8");
 }
+
+if (fs.existsSync("extension.yml")) {
+  const ext = fs.readFileSync("extension.yml", "utf8");
+  const updatedExt = ext.replace(/^(\s*version:\s*)["']?\d+\.\d+\.\d+["']?\s*$/m, "$1\"" + next + "\"");
+  fs.writeFileSync("extension.yml", updatedExt, "utf8");
+}
 ' "$NEXT"
 
 node scripts/validate.mjs >/dev/null
 
 if [ "$DO_COMMIT" = true ]; then
-  git add VERSION skills/open-points-overview/SKILL.md package.json
+  git add VERSION skills/open-points-overview/SKILL.md package.json extension.yml
   git commit -m "chore(release): bump version to v${NEXT} [skip ci]"
 fi
 

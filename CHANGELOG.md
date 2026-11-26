@@ -2,6 +2,14 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.4.0 (2026-11-26)
+
+Official GitHub Spec Kit extension integration (`hooks.after_clarify`):
+
+- **Spec Kit extension manifest & config:** Added root `extension.yml` (`schema_version: "1.0"`, `id: "punktlandung"`, `hooks.after_clarify`) and `config-template.yml` so Spec Kit users can install directly via `specify extension add punktlandung --from ...`.
+- **Spec Kit slash commands:** Added `commands/speckit.punktlandung.clarify.md` (triggered optionally after `/speckit.clarify` to emit an offline RACI page) and `commands/speckit.punktlandung.merge.md` (merges returned `.html` / `PKL1:` replies back into `spec.md` before `/speckit.plan`).
+- **Validation, version sync & tests:** Updated `scripts/validate.mjs`, `scripts/bump-version.sh`, `.githooks/pre-commit`, `package.json`, and `test/punktlandung.test.mjs` to enforce manifest integrity and version sync.
+
 ## 2.3.2 (2026-11-26)
 
 Security, resilience, and onboarding hardening from external code audit:

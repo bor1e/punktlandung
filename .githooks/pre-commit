@@ -15,7 +15,7 @@ while IFS= read -r file; do
     VERSION_STAGED=true
   fi
   case "$file" in
-    skills/*|template/*|examples/*|schema/*|test/*|example.html|scripts/*|README.md)
+    skills/*|template/*|examples/*|schema/*|test/*|commands/*|extension.yml|config-template.yml|example.html|scripts/*|README.md)
       CONTENT_STAGED=true
       ;;
   esac
@@ -23,7 +23,7 @@ done <<< "$STAGED"
 
 if [ "$VERSION_STAGED" = false ] && [ "$CONTENT_STAGED" = true ]; then
   ./scripts/bump-version.sh patch >/dev/null
-  git add VERSION skills/open-points-overview/SKILL.md package.json
+  git add VERSION skills/open-points-overview/SKILL.md package.json extension.yml
 fi
 
 node scripts/validate.mjs

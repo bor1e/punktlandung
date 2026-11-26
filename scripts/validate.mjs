@@ -196,7 +196,19 @@ function runCli() {
   if (targets.length === 0) {
     const versionPath = path.join(root, 'VERSION');
     const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
-    const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'template/overview.html'];
+    const requiredFiles = [
+      'README.md',
+      'CHANGELOG.md',
+      'LICENSE',
+      'AGENTS.md',
+      'CLAUDE.md',
+      'package.json',
+      'extension.yml',
+      'config-template.yml',
+      'commands/speckit.punktlandung.clarify.md',
+      'commands/speckit.punktlandung.merge.md',
+      'template/overview.html'
+    ];
     const schemaFiles = ['schema/context.schema.json', 'schema/spec.schema.json'];
 
     if (!fs.existsSync(versionPath)) {
@@ -241,6 +253,31 @@ function runCli() {
         }
       } catch (err) {
         errors.push(`Invalid JSON in package.json: ${err.message}`);
+      }
+    }
+
+    const extPath = path.join(root, 'extension.yml');
+    if (fs.existsSync(extPath)) {
+      const extYml = fs.readFileSync(extPath, 'utf8');
+      if (!/^schema_version:\s*["']?1\.0["']?\s*$/m.test(extYml)) {
+        errors.push('extension.yml must declare schema_version: "1.0"');
+      }
+      if (!/^\s*id:\s*["']?punktlandung["']?\s*$/m.test(extYml)) {
+        errors.push('extension.yml must declare extension.id: "punktlandung"');
+      }
+      const extVerMatch = extYml.match(/^\s*version:\s*["']?(\d+\.\d+\.\d+)["']?\s*$/m);
+      if (!extVerMatch) {
+        errors.push('extension.yml missing extension.version');
+      } else if (version && extVerMatch[1] !== version) {
+        errors.push(`Version mismatch: VERSION is "${version}" but extension.yml has "${extVerMatch[1]}"`);
+      }
+      if (!/after_clarify:[\s\S]*?command:\s*["']?speckit\.punktlandung\.clarify["']?/m.test(extYml)) {
+        errors.push('extension.yml must define hooks.after_clarify -> speckit.punktlandung.clarify');
+      }
+      for (const m of extYml.matchAll(/^\s*(?:file|template):\s*["']?([^\s"']+)["']?\s*$/gm)) {
+        if (!fs.existsSync(path.join(root, m[1]))) {
+          errors.push(`extension.yml references missing file "${m[1]}"`);
+        }
       }
     }
 
