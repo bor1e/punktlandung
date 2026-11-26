@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bor1e/punktlandung/schema/context.schema.json",
+  "title": "Punktlandung Team Context",
+  "description": "Reusable team/organization context (roles, colors, platform guards, constraints) shared across multiple plan.md or feature-set specifications.",
+  "type": "object",
+  "required": ["lang", "parties"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "lang": {
+      "type": "string",
+      "enum": ["de", "en"],
+      "description": "UI language of the compiled HTML overview."
+    },
+    "org": {
+      "type": "string",
+      "description": "Team or organization label shown as default subtitle."
+    },
+    "assignmentNote": {
+      "type": "string",
+      "description": "Banner text explaining whether RACI assignments are proposed or fixed."
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Standing environment constraints (e.g., AI implements after release)."
+    },
+    "parties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "color", "role", "job"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "short": { "type": "string", "minLength": 1 },
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{3,8}$"
+          },
+          "role": { "type": "string", "minLength": 1 },
+          "job": { "type": "string", "minLength": 1 },
+          "isPlatform": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, validator forbids assigning A or R to this party."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

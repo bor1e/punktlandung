@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/spec.schema.json",
   "id": "order-csv-export",
   "logo": "EX",
   "brand": "Order Export",
@@ -52,6 +53,7 @@
       "group": "core",
       "topic": null,
       "keystoneDependent": true,
+      "mootWhen": { "id": "OQ-1", "eq": "1", "reason": "not needed for async" },
       "title": "Maximum rows for synchronous export",
       "question": "What hard row limit should apply to a single synchronous CSV download?",
       "context": "plan.md §3 (OQ-2). Needed to turn U-1 ('feel fast') into a testable bound.",

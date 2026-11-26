@@ -68,6 +68,7 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .btn{border:1px solid var(--pri);background:var(--pri);color:#fff;border-radius:8px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer}
 .btn:hover{background:var(--pri-90)}.btn.sec2{background:#fff;color:var(--pri)}.btn.sec2:hover{background:var(--pri-10)}
 .btn.full{width:100%;margin-bottom:8px}
+.btn.dirty::after{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:7px;vertical-align:middle}
 .link{border:0;background:none;color:var(--fg-3);font:inherit;font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline}
 .tp{border:1px solid var(--line);border-radius:var(--radius);background:var(--soft);padding:12px 12px 2px;margin:12px 0;min-width:0}
 .tph{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 6px}
@@ -139,7 +140,7 @@ var T={
   saveBtn:'Mit Antworten speichern',
   savedDraft:function(hh){return 'Zwischenstand in diesem Browser gesichert, '+hh+' Uhr. Zum Weitergeben: „Mit Antworten speichern“.'},
   noStorage:'Dieser Browser sichert keinen Zwischenstand. Bitte „Mit Antworten speichern“ nutzen.',
-  savedFile:function(fn){return 'Datei „'+fn+'“ erzeugt. Sie liegt im Download-Ordner und enthält alle Antworten.'},
+  savedFile:function(fn){return 'Datei „'+fn+'“ erzeugt und gespeichert.'},
   loadedSaved:function(n){return 'Diese Datei enthält gespeicherte Antworten'+(n?' von '+n:'')+'.'},
   navOverview:'Überblick', navUseCases:'Use Cases', navClarify:'Klärung',
   navQuestions:'Offene Fragen', navRaci:'Zuständigkeiten', navAnswers:'Antworten', navSources:'Abgrenzung und Quellen',
@@ -197,7 +198,7 @@ var T={
   saveBtn:'Save with answers',
   savedDraft:function(hh){return 'Draft saved in this browser at '+hh+'. To send back: click "Save with answers".'},
   noStorage:'This browser blocks local storage. Please use "Save with answers".',
-  savedFile:function(fn){return 'File "'+fn+'" downloaded with all embedded answers.'},
+  savedFile:function(fn){return 'File "'+fn+'" saved with all embedded answers.'},
   loadedSaved:function(n){return 'This file contains saved answers'+(n?' from '+n:'')+'.'},
   navOverview:'Overview', navUseCases:'Use Cases', navClarify:'Clarification',
   navQuestions:'Open Questions', navRaci:'Responsibilities', navAnswers:'Answers', navSources:'Scope & Sources',
@@ -215,7 +216,7 @@ var T={
   answeredOf:function(d,t){return d+' of '+t+' items answered. Open by role:'},
   coreQuestions:'Core / Keystone Questions', allQuestionsOverview:'Open Questions Overview',
   howToTitle:'How to use this page',
-  howTo:['Everything is shown by default. Pick your role on the left (or click a role above) to focus on your decisions.','Select an option for each question, or choose "Other" and type your answer. Proposals are suggestions, not requirements.','Click "Save with answers" to download a self-contained copy of this file and send it back.'],
+  howTo:['Everything is shown by default. Pick your role on the left (or click a role above) to focus on your decisions.','Select an option for each question, or choose "Other" and type your answer. Proposals are suggestions, not requirements.','Click "Save with answers" to save a self-contained copy of this file and send it back.'],
   colId:'ID', colQ:'Question', colDecider:'Decides', colSupplier:'Supplies answer', colState:'Status',
   colAnswer:'Answer', colNote:'Note',
   colInit:'Given', colAct:'When', colExp:'Then',
@@ -262,9 +263,16 @@ var KS=SPEC.keystone||null;
 var GROUPS=(SPEC.groups||[]).slice();
 var UC=GROUPS.filter(function(g){return Array.isArray(g.scenarios)&&g.scenarios.length>0});
 var TP=SPEC.topics||{};
+var BRANCH_IDS={};
+if(KS&&KS.id){BRANCH_IDS[KS.id]=true}
 var Q=(SPEC.questions||[]).map(function(q){
+ var mw=q.mootWhen||null;
+ if(mw){
+  var arr=Array.isArray(mw)?mw:[mw];
+  arr.forEach(function(r){if(r&&r.id){BRANCH_IDS[r.id]=true}});
+ }
  return {
-  id:q.id, tp:q.topic||null, uc:q.group, a:!!q.keystoneDependent,
+  id:q.id, tp:q.topic||null, uc:q.group, a:!!q.keystoneDependent, mootWhen:mw,
   t:q.title, q:q.question, ctx:q.context||'', details:q.details||null,
   o:q.options||[], rec:(q.proposal===undefined?null:q.proposal), why:q.reason||'',
   r:q.raci||{}, fs:q.ref||'', dep:(q.dependsOn&&q.dependsOn.length?q.dependsOn:null)
@@ -288,7 +296,7 @@ document.getElementById('brandSub').textContent=SPEC.subtitle||CTX.org||'';
 document.getElementById('roleLabel').textContent=T.roleLabel;
 document.getElementById('btnSave').textContent=T.saveBtn;
 
-/* ---------- State ---------- */
+/* ---------- State & TiddlyWiki Saver UX ---------- */
 var EMB={};try{EMB=JSON.parse(document.getElementById('saved').textContent||'{}')}catch(e){}
 var FILE_ID=EMB.id||'draft', KEY='punktlandung:'+(SPEC.id||'spec')+':'+SPEC_VER+':'+FILE_ID;
 var S=EMB.S||{role:'',name:'',a:{}};
@@ -296,6 +304,14 @@ try{var loc=JSON.parse(localStorage.getItem(KEY)||'null');if(loc&&loc.a){S=loc}}
 if(S.role&&!P[S.role]){S.role=''}
 var F={p:S.role,open:false,norec:false};
 var main=document.getElementById('main'),nav=document.getElementById('nav'),roleSel=document.getElementById('role');
+var dirty=false, fileHandle=null;
+
+function syncDirtyButtons(){
+ var b1=document.getElementById('btnSave');if(b1){b1.classList.toggle('dirty',dirty)}
+ var b2=main.querySelector('[data-save]');if(b2){b2.classList.toggle('dirty',dirty)}
+}
+function markDirty(v){dirty=!!v;syncDirtyButtons()}
+window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
 
 function persist(){
  var ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
@@ -305,7 +321,19 @@ function persist(){
 function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function ans(id){return S.a[id]||{o:'',t:'',n:''}}
 function isDone(q){var a=ans(q.id);return a.o!==''&&(a.o!=='x'||a.t.trim()!=='')}
-function isMoot(q){return !!(KS&&q.a&&ans(KS.id).o===String(KS.mootOption))}
+function mootRuleOf(q){
+ if(q.mootWhen){
+  var rules=Array.isArray(q.mootWhen)?q.mootWhen:[q.mootWhen];
+  for(var i=0;i<rules.length;i++){
+   var r=rules[i],v=ans(r.id).o;
+   if(r.eq!==undefined&&v===String(r.eq)){return r.reason||(KS&&KS.mootStatus)||T.stMoot}
+   if(r.neq!==undefined&&v!==''&&v!==String(r.neq)){return r.reason||(KS&&KS.mootStatus)||T.stMoot}
+  }
+ }
+ if(KS&&q.a&&ans(KS.id).o===String(KS.mootOption)){return KS.mootStatus||T.stMoot}
+ return '';
+}
+function isMoot(q){return Boolean(mootRuleOf(q))}
 function isOpen(q){return !isMoot(q)&&!isDone(q)}
 function has(q,p,letters){var v=q.r[p]||'';for(var i=0;i<letters.length;i++){if(v.indexOf(letters[i])>=0){return true}}return false}
 function mine(q,p){return p===''||has(q,p,'AR')}
@@ -322,7 +350,8 @@ function whoHtml(q){
  return T.colDecider+' '+pchip(d)+(R.length?' · '+T.colSupplier+' '+R.map(function(p){return pchip(p,true)}).join(' '):'');
 }
 function statusChip(q){
- if(isMoot(q)){return '<span class="p ne" data-st>'+h((KS&&KS.mootStatus)||T.stMoot)+'</span>'}
+ var mr=mootRuleOf(q);
+ if(mr){return '<span class="p ne" data-st>'+h(mr)+'</span>'}
  return isDone(q)?'<span class="p ok" data-st>'+T.stDone+'</span>':'<span class="p warn" data-st>'+T.stOpen+'</span>';
 }
 function detailsHtml(d){
@@ -558,6 +587,7 @@ function renderNav(){
 function render(focus){
  main.innerHTML=(V[cur]||V.ueberblick)();
  renderNav();
+ syncDirtyButtons();
  if(focus){var el=main.querySelector('[data-q="'+focus+'"]');if(el){el.scrollIntoView({block:'start'});return}}
 }
 function route(target){
@@ -572,10 +602,9 @@ function refreshCard(card,q){
  card.querySelectorAll('.opt').forEach(function(l){var r=l.querySelector('input[type=radio]');l.classList.toggle('sel',r.checked)});
  var tp=card.closest('.tp');if(tp){tp.querySelector('[data-tpst]').textContent=tpState(tp.getAttribute('data-tp'))}
 }
-function setAns(id,patch){var a=ans(id);for(var k in patch){a[k]=patch[k]}S.a[id]=a;persist()}
+function setAns(id,patch){var a=ans(id);for(var k in patch){a[k]=patch[k]}S.a[id]=a;markDirty(true);persist()}
 function keepScroll(){var y=window.scrollY;render();window.scrollTo(0,y)}
 function copyStr(str,btn){
- var ok=false;
  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(str).then(function(){btn.textContent=T.copied},function(){fallbackCopy(str,btn)});return}
  fallbackCopy(str,btn);
 }
@@ -588,10 +617,10 @@ function fallbackCopy(str,btn){
 main.addEventListener('change',function(ev){
  var card=ev.target.closest('.q');if(!card||ev.target.type!=='radio'){return}
  var id=card.getAttribute('data-q');setAns(id,{o:ev.target.value});
- if(KS&&id===KS.id){keepScroll()}else{refreshCard(card,QI[id]);renderNav()}
+ if(BRANCH_IDS[id]){keepScroll()}else{refreshCard(card,QI[id]);renderNav()}
 });
 main.addEventListener('input',function(ev){
- if(ev.target.id==='name'){S.name=ev.target.value;persist();return}
+ if(ev.target.id==='name'){S.name=ev.target.value;markDirty(true);persist();return}
  var card=ev.target.closest('.q'),f=ev.target.getAttribute('data-f');if(!card||!f){return}
  var id=card.getAttribute('data-q'),patch={};patch[f]=ev.target.value;
  if(f==='t'&&ev.target.value!==''){patch.o='x';card.querySelector('input[value="x"]').checked=true}
@@ -599,7 +628,7 @@ main.addEventListener('input',function(ev){
 });
 main.addEventListener('click',function(ev){
  var t=ev.target.closest?ev.target.closest('button'):null;if(!t){return}
- if(t.hasAttribute('data-clear')){delete S.a[t.closest('.q').getAttribute('data-q')];persist();keepScroll();return}
+ if(t.hasAttribute('data-clear')){delete S.a[t.closest('.q').getAttribute('data-q')];markDirty(true);persist();keepScroll();return}
  if(t.hasAttribute('data-p')){F.p=t.getAttribute('data-p');render();return}
  if(t.hasAttribute('data-open')){F.open=!F.open;render();return}
  if(t.hasAttribute('data-norec')){F.norec=!F.norec;render();return}
@@ -612,19 +641,38 @@ main.addEventListener('click',function(ev){
  if(t.hasAttribute('data-save')){saveHtml();return}
  if(t.hasAttribute('data-copy')){var ta=document.getElementById('sum');ta.value=summaryText();copyStr(ta.value,t);return}
  if(t.hasAttribute('data-copy-json')){copyStr(summaryJson(),t);return}
- if(t.hasAttribute('data-reset')){if(confirm(T.resetConfirm)){S.a={};persist();render()}return}
+ if(t.hasAttribute('data-reset')){if(confirm(T.resetConfirm)){S.a={};markDirty(true);persist();render()}return}
 });
-function saveHtml(){
+async function saveHtml(){
  var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
  var clone=document.documentElement.cloneNode(true);
  ['#main','#nav','#role','#saveState'].forEach(function(sel){clone.querySelector(sel).innerHTML=''});
+ clone.querySelectorAll('.dirty').forEach(function(el){el.classList.remove('dirty')});
  clone.querySelector('#saved').textContent=JSON.stringify({id:'f'+d.getTime().toString(36),at:d.toISOString(),S:S}).replace(/</g,'\\u003c');
- var blob=new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'});
+ var htmlOut='<!doctype html>\n'+clone.outerHTML;
  var who=(S.name||(S.role?P[S.role].k:'')).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'answers';
  var prefix=(SPEC.id||'open-points').toLowerCase().replace(/[^a-z0-9-]+/g,'-');
- var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=prefix+'-'+who+'-'+ds+'.html';
+ var filename=prefix+'-'+who+'-'+ds+'.html';
+ if(typeof window.showSaveFilePicker==='function'){
+  try{
+   if(!fileHandle){
+    fileHandle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'HTML Document',accept:{'text/html':['.html']}}]});
+   }
+   var w=await fileHandle.createWritable();
+   await w.write(htmlOut);
+   await w.close();
+   markDirty(false);
+   document.getElementById('saveState').textContent=T.savedFile(fileHandle.name||filename);
+   return;
+  }catch(err){
+   if(err&&err.name==='AbortError'){return}
+  }
+ }
+ var blob=new Blob([htmlOut],{type:'text/html;charset=utf-8'});
+ var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;
  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
- document.getElementById('saveState').textContent=T.savedFile(a.download);
+ markDirty(false);
+ document.getElementById('saveState').textContent=T.savedFile(filename);
 }
 document.getElementById('btnSave').addEventListener('click',saveHtml);
 roleSel.innerHTML='<option value="">'+h(T.allRoles)+'</option>'+ORDER.map(function(p){return '<option value="'+h(p)+'"'+(S.role===p?' selected':'')+'>'+h(P[p].k)+'</option>'}).join('');

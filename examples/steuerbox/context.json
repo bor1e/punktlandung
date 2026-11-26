@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/context.schema.json",
   "lang": "de",
   "org": "Anonymisiertes Beispiel",
   "assignmentNote": "Die Zuordnung ist ein Vorschlag. Keine Quelle legt fest, wer welche Frage entscheidet. Fachliche Anforderungen, Systemführung und Steuerbox-Rollout sind hier eine Rolle: Fachbereich.",

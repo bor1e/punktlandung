@@ -2,6 +2,15 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.1.0 (2026-11-26)
+
+Adopted the best ideas from SurveyJS, TiddlyWiki, Spec Kit, and OpenSpec without adding any runtime dependencies:
+
+- **Formal JSON Schemas:** Added `schema/context.schema.json` and `schema/spec.schema.json` (Draft 2020-12) referenced by all examples and checked by `scripts/validate.mjs`.
+- **Declarative per-question branching (`mootWhen`):** SurveyJS-style conditional dimming (`{ id, eq | neq, reason }`) supported in `template/overview.html`, `scripts/validate.mjs`, and `scripts/merge-answers.mjs` alongside legacy `keystoneDependent`.
+- **TiddlyWiki-style saver UX:** Added unsaved-change indicator dot, `beforeunload` tab-close guard, and `window.showSaveFilePicker` save-in-place with seamless Blob download fallback.
+- **Spec Kit & OpenSpec bridge:** Documented upstream `[NEEDS CLARIFICATION]` / `openspec/changes/<feature>/` integration in `README.md` and `SKILL.md`, and replaced all local paths with relative links for public GitHub release.
+
 ## 2.0.0 (2026-11-26)
 
 Generalization from a single hardcoded German HTML example into a reusable, open-source **two-layer clarification compiler** for any `plan.md` or feature spec.

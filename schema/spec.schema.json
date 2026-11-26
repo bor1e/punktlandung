@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bor1e/punktlandung/schema/spec.schema.json",
+  "title": "Punktlandung Feature Spec",
+  "description": "Open points, options, reasoned proposals, RACI assignments, and optional use-case scenarios extracted from a plan.md or feature specification.",
+  "type": "object",
+  "required": ["id", "title", "spec", "groups", "questions"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "minLength": 1 },
+    "logo": { "type": "string" },
+    "brand": { "type": "string" },
+    "subtitle": { "type": "string" },
+    "title": { "type": "string", "minLength": 1 },
+    "lead": { "type": "string" },
+    "spec": {
+      "type": "object",
+      "required": ["file", "version"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "date": { "type": "string" },
+        "openCount": { "type": "integer", "minimum": 0 },
+        "unprovableCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "sourcesBadges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "value"],
+        "properties": {
+          "label": { "type": "string" },
+          "value": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "anonBanner": { "type": "string" },
+    "keystone": {
+      "type": "object",
+      "required": ["id", "mootOption", "openBanner"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "mootOption": { "type": "string" },
+        "tag": { "type": "string" },
+        "mootStatus": { "type": "string" },
+        "openBanner": { "type": "string" },
+        "mootBanner": { "type": "string" },
+        "mootGroups": { "type": "array", "items": { "type": "string" } },
+        "mootGroupBanner": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "badge": { "type": "string" },
+          "title": { "type": "string", "minLength": 1 },
+          "actor": { "type": "string" },
+          "ref": { "type": "string" },
+          "goal": { "type": "string" },
+          "src": { "type": "string" },
+          "note": { "type": "string" },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "topics": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "group", "title", "question", "options", "raci"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "group": { "type": "string", "minLength": 1 },
+          "topic": { "type": ["string", "null"] },
+          "keystoneDependent": { "type": "boolean" },
+          "mootWhen": {
+            "oneOf": [
+              { "$ref": "#/$defs/mootRule" },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/mootRule" }
+              }
+            ]
+          },
+          "title": { "type": "string", "minLength": 1 },
+          "question": { "type": "string", "minLength": 1 },
+          "context": { "type": "string" },
+          "details": {
+            "type": "object",
+            "required": ["items"],
+            "properties": {
+              "summary": { "type": "string" },
+              "items": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "proposal": { "type": ["integer", "null"], "minimum": 0, "maximum": 3 },
+          "reason": { "type": "string" },
+          "raci": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[ARCI]+$"
+            }
+          },
+          "ref": { "type": "string" },
+          "dependsOn": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "required": ["heading", "cards"],
+      "properties": {
+        "heading": { "type": "string" },
+        "caption": { "type": "string" },
+        "cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "blocks"],
+            "properties": {
+              "title": { "type": "string" },
+              "blocks": { "type": "array" }
+            }
+          }
+        }
+      }
+    },
+    "extraRolesNote": { "type": "string" },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": { "type": "string" }
+      }
+    },
+    "outOfScope": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "mootRule": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "eq": { "type": "string" },
+        "neq": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "anyOf": [
+        { "required": ["eq"] },
+        { "required": ["neq"] }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

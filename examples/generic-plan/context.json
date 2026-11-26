@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/context.schema.json",
   "lang": "en",
   "org": "Product Delivery Team",
   "assignmentNote": "RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.",

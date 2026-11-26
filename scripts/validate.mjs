@@ -121,6 +121,19 @@ export function validatePayload(payload, label = 'spec-data') {
         errs.push(`${label}: question "${q.id}" depends on unknown question "${depId}"`);
       }
     }
+    if (q.mootWhen !== undefined && q.mootWhen !== null) {
+      const rules = Array.isArray(q.mootWhen) ? q.mootWhen : [q.mootWhen];
+      if (!rules.length) {
+        errs.push(`${label}: question "${q.id}" mootWhen array must not be empty`);
+      }
+      for (const rule of rules) {
+        if (!rule || typeof rule !== 'object' || typeof rule.id !== 'string' || !seenQ.has(rule.id)) {
+          errs.push(`${label}: question "${q.id}" mootWhen references unknown question "${rule?.id}"`);
+        } else if (rule.eq === undefined && rule.neq === undefined) {
+          errs.push(`${label}: question "${q.id}" mootWhen rule for "${rule.id}" needs eq or neq`);
+        }
+      }
+    }
   }
 
   if (spec.keystone?.id && !seenQ.has(spec.keystone.id)) {
@@ -159,6 +172,7 @@ function runCli() {
   const versionPath = path.join(root, 'VERSION');
   const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
   const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'template/overview.html'];
+  const schemaFiles = ['schema/context.schema.json', 'schema/spec.schema.json'];
 
   let version = '';
   if (!fs.existsSync(versionPath)) {
@@ -191,6 +205,19 @@ function runCli() {
   for (const rel of requiredFiles) {
     if (!fs.existsSync(path.join(root, rel))) {
       errors.push(`Missing ${rel}`);
+    }
+  }
+
+  for (const rel of schemaFiles) {
+    const p = path.join(root, rel);
+    if (!fs.existsSync(p)) {
+      errors.push(`Missing ${rel}`);
+    } else {
+      try {
+        JSON.parse(fs.readFileSync(p, 'utf8'));
+      } catch (err) {
+        errors.push(`Invalid JSON in ${rel}: ${err.message}`);
+      }
     }
   }
 

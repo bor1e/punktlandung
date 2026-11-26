@@ -50,12 +50,6 @@ function isAnswered(ans) {
   return Boolean(ans && ans.o !== '' && (ans.o !== 'x' || (ans.t || '').trim() !== ''));
 }
 
-// First resolve keystone if present
-const resolvedMap = new Map();
-const conflicts = [];
-const resolved = [];
-const stillOpen = [];
-
 function evaluateQuestion(q) {
   const decider = deciderOf(q);
   const entries = [];
@@ -92,24 +86,54 @@ function evaluateQuestion(q) {
   return { status: 'conflict', decider, entries };
 }
 
-// Pass 1: evaluate keystone first
+// Pass 1: evaluate all branch-controlling questions (keystone + mootWhen targets)
 const ks = spec.keystone;
-let keystoneMootActive = false;
-if (ks?.id) {
-  const ksQ = questions.find((q) => q.id === ks.id);
-  if (ksQ) {
-    const ksRes = evaluateQuestion(ksQ);
-    resolvedMap.set(ksQ.id, ksRes);
-    if (ksRes.status === 'resolved' && ksRes.chosen.optionIndex === String(ks.mootOption)) {
-      keystoneMootActive = true;
-    }
+const branchIds = new Set();
+if (ks?.id) branchIds.add(ks.id);
+for (const q of questions) {
+  if (!q.mootWhen) continue;
+  const rules = Array.isArray(q.mootWhen) ? q.mootWhen : [q.mootWhen];
+  for (const r of rules) {
+    if (r?.id) branchIds.add(r.id);
   }
 }
 
-const moot = [];
+const resolvedMap = new Map();
 for (const q of questions) {
-  if (keystoneMootActive && q.keystoneDependent) {
-    moot.push({ id: q.id, title: q.title, ref: q.ref });
+  if (branchIds.has(q.id)) {
+    resolvedMap.set(q.id, evaluateQuestion(q));
+  }
+}
+
+function mootReasonFor(q) {
+  if (q.mootWhen) {
+    const rules = Array.isArray(q.mootWhen) ? q.mootWhen : [q.mootWhen];
+    for (const r of rules) {
+      const target = resolvedMap.get(r.id);
+      if (target?.status !== 'resolved') continue;
+      const v = target.chosen.optionIndex;
+      if (r.eq !== undefined && v === String(r.eq)) return r.reason || ks?.mootStatus || 'moot';
+      if (r.neq !== undefined && v !== '' && v !== String(r.neq)) return r.reason || ks?.mootStatus || 'moot';
+    }
+  }
+  if (ks?.id && q.keystoneDependent) {
+    const ksRes = resolvedMap.get(ks.id);
+    if (ksRes?.status === 'resolved' && ksRes.chosen.optionIndex === String(ks.mootOption)) {
+      return ks.mootStatus || 'moot';
+    }
+  }
+  return '';
+}
+
+const conflicts = [];
+const resolved = [];
+const stillOpen = [];
+const moot = [];
+
+for (const q of questions) {
+  const mr = mootReasonFor(q);
+  if (mr) {
+    moot.push({ id: q.id, title: q.title, ref: q.ref, reason: mr });
     continue;
   }
   const res = resolvedMap.get(q.id) || evaluateQuestion(q);
@@ -179,9 +203,9 @@ if (conflicts.length > 0) {
 }
 
 if (moot.length > 0) {
-  lines.push('## Removed by Keystone');
+  lines.push('## Removed by Branch / Keystone');
   for (const m of moot) {
-    lines.push(`- ~~${m.id}~~ (${m.ref || '-'}): ${m.title}`);
+    lines.push(`- ~~${m.id}~~ (${m.ref || '-'}): ${m.title} _(${m.reason})_`);
   }
   lines.push('');
 }

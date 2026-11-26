@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/spec.schema.json",
   "id": "steuerbox-uebersicht",
   "logo": "SB",
   "brand": "Steuerbox",
