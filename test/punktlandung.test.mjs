@@ -695,6 +695,121 @@ describe('merge-answers.mjs', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('validates optional links[] on spec, groups, and questions and rejects unsafe protocols', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const good = structuredClone(extractJsonIsland(html, 'spec-data'));
+    good.spec.links = [{ label: 'Figma Spec', url: 'https://www.figma.com/design/abc' }];
+    good.spec.groups[0].links = [{ label: 'Jira Epic', url: 'https://jira.internal.corp/browse/PAY-1', kind: 'jira' }];
+    good.spec.questions[0].links = [{ label: 'ADO Repo', url: 'https://dev.azure.com/org/proj/_git/repo' }];
+    assert.deepEqual(validatePayload(good, 'links-ok').errs, []);
+
+    const bad = structuredClone(good);
+    bad.spec.links = [{ label: 'XSS', url: 'javascript:alert(1)' }];
+    bad.spec.questions[0].links = [{ label: '', url: 'https://github.com/org/repo', kind: 'unknown' }];
+    const { errs } = validatePayload(bad, 'links-bad');
+    assert.ok(errs.some((e) => e.includes('protocol') || e.includes('pattern')));
+    assert.ok(errs.some((e) => e.includes('must be one of') || e.includes('minLength')));
+  });
+
+  it('renders auto-badged clickable pills for Figma, Jira, Confluence, GitHub, GitLab, and ADO on overview, question footers, and #quellen', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const specData = structuredClone(extractJsonIsland(html, 'spec-data'));
+    specData.spec.links = [
+      { label: 'Flow <Wireframe>', url: 'https://www.figma.com/design/xyz' },
+      { label: 'PAY-12', url: 'https://acme.atlassian.net/browse/PAY-12' },
+      { label: 'Architecture Decision', url: 'https://acme.atlassian.net/wiki/spaces/ENG/pages/99' },
+      { label: 'Self-hosted Jira', url: 'https://tracker.internal.example/browse/OPS-3', kind: 'jira' }
+    ];
+    specData.spec.questions[0].links = [
+      { label: 'PR #42', url: 'https://github.com/acme/app/pull/42' },
+      { label: 'MR !9', url: 'https://gitlab.com/acme/app/-/merge_requests/9' },
+      { label: 'WI #77', url: 'https://dev.azure.com/acme/proj/_workitems/edit/77' },
+      { label: 'Blocked', url: 'javascript:alert(1)' }
+    ];
+    const savedData = extractJsonIsland(html, 'saved');
+    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+
+    const makeEl = (id) => ({
+      id,
+      innerHTML: '',
+      textContent: id === 'spec-data' ? JSON.stringify(specData) : id === 'saved' ? JSON.stringify(savedData) : '',
+      value: '',
+      classList: { toggle: () => {}, contains: () => false },
+      addEventListener: () => {},
+      querySelector: () => null,
+      querySelectorAll: () => []
+    });
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+    const context = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: () => {},
+      confirm: () => true,
+      location: { hash: '#ueberblick' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: () => null, setItem: () => {} },
+      navigator: { clipboard: { writeText: () => Promise.resolve() } },
+      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: () => {},
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('>Figma<') && els.main.innerHTML.includes('Flow &lt;Wireframe&gt;'));
+    assert.ok(els.main.innerHTML.includes('>Jira<') && els.main.innerHTML.includes('PAY-12'));
+    assert.ok(els.main.innerHTML.includes('>Confluence<') && els.main.innerHTML.includes('Self-hosted Jira'));
+    assert.ok(els.main.innerHTML.includes('target="_blank" rel="noopener noreferrer"'));
+
+    // Check question footer on #fragen and Linked Resources on #quellen
+    const hashSpy = { hash: '#fragen' };
+    context.location = hashSpy;
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('>GitHub<') && els.main.innerHTML.includes('PR #42'));
+    assert.ok(els.main.innerHTML.includes('>GitLab<') && els.main.innerHTML.includes('MR !9'));
+    assert.ok(els.main.innerHTML.includes('>Azure DevOps<') && els.main.innerHTML.includes('WI #77'));
+    assert.ok(!els.main.innerHTML.includes('javascript:alert(1)'));
+
+    context.location = { hash: '#quellen' };
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('Linked Resources'));
+    assert.ok(els.main.innerHTML.includes('PR #42') && els.main.innerHTML.includes('Architecture Decision'));
+  });
+
+  it('extracts Markdown links cleanly in init-case for questions and top-level references', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-links-'));
+    try {
+      const planPath = path.join(tmpDir, 'plan.md');
+      const outDir = path.join(tmpDir, 'out');
+      fs.writeFileSync(planPath, [
+        '# Checkout Flow',
+        '',
+        '## References',
+        '- [Figma Mockup](https://www.figma.com/design/checkout)',
+        '- Jira: [PAY-42](https://acme.atlassian.net/browse/PAY-42)',
+        '',
+        '## Open Questions',
+        '- Should we keep guest checkout per [Design Spec](https://acme.atlassian.net/wiki/spaces/ENG/pages/10)?'
+      ].join('\n'));
+      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), planPath, '--out-dir', outDir], { encoding: 'utf8' });
+      const spec = JSON.parse(fs.readFileSync(path.join(outDir, 'spec.json'), 'utf8'));
+      assert.equal(spec.links.length, 2);
+      assert.equal(spec.links[0].url, 'https://www.figma.com/design/checkout');
+      assert.equal(spec.links[1].url, 'https://acme.atlassian.net/browse/PAY-42');
+      assert.equal(spec.questions[0].question, 'Should we keep guest checkout per Design Spec?');
+      assert.deepEqual(spec.questions[0].links, [{ label: 'Design Spec', url: 'https://acme.atlassian.net/wiki/spaces/ENG/pages/10' }]);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('Spec Kit extension manifest', () => {

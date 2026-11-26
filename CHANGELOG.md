@@ -2,6 +2,15 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.6.0 (2026-11-26)
+
+Clickable external reference links for Figma, Jira, Confluence, GitHub, GitLab, and Azure DevOps:
+
+- **Schema & URL safety (`schema/spec.schema.json`, `scripts/validate.mjs`):** Added optional `links[]` (`{ label, url, kind? }`) to top-level `spec`, `groups[]`, and `questions[]`; restricts `url` to `http://` / `https://` via schema pattern and `new URL(...)` protocol checks.
+- **Auto-badged clickable pills (`template/overview.html`):** Auto-detects `Figma`, `Jira`, `Confluence`, `GitHub`, `GitLab`, and `Azure DevOps` URLs (with explicit `kind` override for self-hosted instances), renders safe `target="_blank" rel="noopener noreferrer"` pills in Overview headers, group views, question footers, and a deduplicated `#quellen` Linked Resources section.
+- **Markdown link extraction (`scripts/init-case.mjs`):** Extracts `[label](https://...)` links from open-question bullets into `question.links` (keeping question text readable) and from `## Links` / `## References` / `## Sources` sections into `spec.links`.
+- **Example, docs & tests (`examples/generic-plan/spec.json`, `skills/open-points-overview/SKILL.md`, `README.md`, `test/punktlandung.test.mjs`):** Documented non-blocking backup-evidence guidance and added validator, template rendering, and `init-case` regression tests.
+
 ## 2.5.0 (2026-11-26)
 
 Backwards-compatible decision-governance additions for `context.json` and extraction guardrails inspired by *"Taking Decisions Like a Court"*:

@@ -40,14 +40,45 @@ const verMatch = md.match(/\*\*Version:\*\*\s*([^\s]+)/i);
 const specVersion = verMatch ? verMatch[1] : '0.1.0';
 const relInput = path.relative(root, inPath) || path.basename(inPath);
 
+function extractMdLinks(text) {
+  const links = [];
+  const seen = new Set();
+  const cleaned = String(text || '')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_m, label, url) => {
+      const cleanLabel = label.trim();
+      const cleanUrl = url.trim();
+      if (cleanLabel && cleanUrl && !seen.has(cleanUrl)) {
+        seen.add(cleanUrl);
+        links.push({ label: cleanLabel, url: cleanUrl });
+      }
+      return cleanLabel;
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+  return { text: cleaned, links };
+}
+
+function pushUniqueLinks(target, items) {
+  const seen = new Set(target.map((l) => l.url));
+  for (const item of items) {
+    if (!seen.has(item.url)) {
+      seen.add(item.url);
+      target.push(item);
+    }
+  }
+}
+
 // Extract open points from:
 // 1. [NEEDS CLARIFICATION: ...] anywhere
 // 2. Explicit open-point IDs (OQ-x, OPEN-x, Q-x, U-x, TODO-x) anywhere — never US-x / FR-x / REQ-x
 // 3. Plain bullets or numbered items inside Open Questions / Clarifications / Open Decisions / Unprovable headings (including sub-headings)
 const extracted = [];
+const topLinks = [];
 let idx = 1;
 let openSectionLevel = 0;
+let linkSectionLevel = 0;
 const OPEN_HEADING_RE = /\b(open\s+(?:questions?|points?|decisions?)|pending\s+decisions?|decisions?\s+(?:needed|required)|clarifications?|offene\s+(?:fragen|punkte|entscheidungen)|unprovable|nicht\s+nachweisbar|todo)\b/i;
+const LINKS_HEADING_RE = /\b(links?|references?|sources?|referenzen|quellen)\b/i;
 
 for (const line of md.split(/\r?\n/)) {
   const heading = line.match(/^(#{1,6})\s+(.+)$/);
@@ -58,6 +89,11 @@ for (const line of md.split(/\r?\n/)) {
     } else if (openSectionLevel > 0 && level <= openSectionLevel) {
       openSectionLevel = 0;
     }
+    if (LINKS_HEADING_RE.test(heading[2])) {
+      linkSectionLevel = level;
+    } else if (linkSectionLevel > 0 && level <= linkSectionLevel) {
+      linkSectionLevel = 0;
+    }
     continue;
   }
   const inOpenSection = openSectionLevel > 0;
@@ -65,14 +101,16 @@ for (const line of md.split(/\r?\n/)) {
   const ncMatches = [...line.matchAll(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/gi)];
   if (ncMatches.length > 0) {
     for (const nc of ncMatches) {
-      extracted.push({ id: `Q-${idx++}`, text: nc[1].trim(), ref: `[NEEDS CLARIFICATION]` });
+      const parsed = extractMdLinks(nc[1]);
+      extracted.push({ id: `Q-${idx++}`, text: parsed.text, ref: `[NEEDS CLARIFICATION]`, links: parsed.links });
     }
     continue;
   }
 
   const tagged = line.match(/^\s*[-*]\s+`?((?:OQ|OPEN|Q|U|TODO)-\d+)`?(?:\s*\([^)]*\))?:\s*(.+)$/i);
   if (tagged) {
-    extracted.push({ id: tagged[1].toUpperCase(), text: tagged[2].trim(), ref: tagged[1].toUpperCase() });
+    const parsed = extractMdLinks(tagged[2]);
+    extracted.push({ id: tagged[1].toUpperCase(), text: parsed.text, ref: tagged[1].toUpperCase(), links: parsed.links });
     continue;
   }
 
@@ -88,14 +126,22 @@ for (const line of md.split(/\r?\n/)) {
         ref = prefix[1];
         rawText = prefix[2].trim();
       }
-      extracted.push({ id, text: rawText, ref });
+      const parsed = extractMdLinks(rawText);
+      extracted.push({ id, text: parsed.text, ref, links: parsed.links });
       continue;
     }
   }
 
   const todo = line.match(/^\s*[-*]\s+\[\s\]\s+(.+)$/);
   if (todo && /(\?|\btbd\b|\btodo\b|\bclarify\b)/i.test(todo[1])) {
-    extracted.push({ id: `Q-${idx++}`, text: todo[1].trim(), ref: 'TODO' });
+    const parsed = extractMdLinks(todo[1]);
+    extracted.push({ id: `Q-${idx++}`, text: parsed.text, ref: 'TODO', links: parsed.links });
+    continue;
+  }
+
+  if (linkSectionLevel > 0 || /^\s*(?:[-*]\s*)?(?:figma|jira|confluence|github|gitlab|azure\s*devops|ado|spec|prd|design)\s*:\s*/i.test(line)) {
+    const parsed = extractMdLinks(line);
+    if (parsed.links.length > 0) pushUniqueLinks(topLinks, parsed.links);
   }
 }
 
@@ -103,7 +149,8 @@ if (extracted.length === 0) {
   extracted.push({
     id: 'Q-1',
     text: `Clarify primary open point in ${path.basename(inPath)}`,
-    ref: 'Q-1'
+    ref: 'Q-1',
+    links: []
   });
 }
 
@@ -121,6 +168,7 @@ const spec = {
     openCount: extracted.length,
     unprovableCount: 0
   },
+  ...(topLinks.length > 0 ? { links: topLinks } : {}),
   groups: [{ id: 'open', title: lang === 'de' ? 'Offene Punkte' : 'Open Points' }],
   topics: {},
   questions: extracted.map((item) => ({
@@ -135,6 +183,7 @@ const spec = {
     reason: 'Review with AI/team: add proposal + reason, or keep null if fact question.',
     raci: { PO: 'A', BIZ: 'C', ARCH: 'C' },
     ref: item.ref,
+    ...(item.links && item.links.length > 0 ? { links: item.links } : {}),
     dependsOn: []
   })),
   sources: [relInput]

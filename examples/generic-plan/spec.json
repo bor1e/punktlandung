@@ -16,6 +16,9 @@
   "sourcesBadges": [
     { "label": "Input", "value": "plan.md only" }
   ],
+  "links": [
+    { "label": "examples/generic-plan/plan.md", "url": "https://github.com/bor1e/punktlandung/blob/main/examples/generic-plan/plan.md" }
+  ],
   "keystone": {
     "id": "OQ-1",
     "mootOption": "1",
@@ -46,6 +49,9 @@
       "reason": "Requires no queue or email infrastructure and matches typical B2C order counts; revisit if exports routinely exceed 5,000 rows.",
       "raci": { "ARCH": "A", "PO": "R", "BIZ": "C", "PLAT": "C" },
       "ref": "OQ-1, U-1",
+      "links": [
+        { "label": "plan.md §3 Open Questions", "url": "https://github.com/bor1e/punktlandung/blob/main/examples/generic-plan/plan.md" }
+      ],
       "dependsOn": []
     },
     {

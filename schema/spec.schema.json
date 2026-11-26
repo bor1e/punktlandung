@@ -37,6 +37,10 @@
         "additionalProperties": false
       }
     },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/linkItem" }
+    },
     "anonBanner": { "type": "string" },
     "keystone": {
       "type": "object",
@@ -68,6 +72,7 @@
           "goal": { "type": "string" },
           "src": { "type": "string" },
           "note": { "type": "string" },
+          "links": { "type": "array", "items": { "$ref": "#/$defs/linkItem" } },
           "scenarios": {
             "type": "array",
             "items": {
@@ -135,6 +140,7 @@
             }
           },
           "ref": { "type": "string" },
+          "links": { "type": "array", "items": { "$ref": "#/$defs/linkItem" } },
           "dependsOn": {
             "type": "array",
             "items": { "type": "string" }
@@ -191,6 +197,19 @@
     }
   },
   "$defs": {
+    "linkItem": {
+      "type": "object",
+      "required": ["label", "url"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "pattern": "^https?://[^\\s]+$" },
+        "kind": {
+          "type": "string",
+          "enum": ["figma", "jira", "confluence", "github", "gitlab", "ado", "doc"]
+        }
+      },
+      "additionalProperties": false
+    },
     "mootRule": {
       "type": "object",
       "required": ["id"],

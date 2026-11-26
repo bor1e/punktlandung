@@ -140,6 +140,33 @@ function isPlaceholderText(s) {
   return /replace with concrete choice|Review with AI\/team|^Option [A-D]\s*\(/i.test(String(s || ''));
 }
 
+function validateLinks(links, ctxLabel, errs) {
+  if (links === undefined) return;
+  if (!Array.isArray(links)) {
+    errs.push(`${ctxLabel}: links must be an array`);
+    return;
+  }
+  links.forEach((link, idx) => {
+    const loc = `${ctxLabel}.links[${idx}]`;
+    if (!link || typeof link !== 'object') return;
+    if (typeof link.label !== 'string' || !link.label.trim()) {
+      errs.push(`${loc}: label must be a non-empty string`);
+    }
+    if (typeof link.url !== 'string') {
+      errs.push(`${loc}: url must be a string`);
+      return;
+    }
+    try {
+      const parsed = new URL(link.url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        errs.push(`${loc}: url protocol "${parsed.protocol}" is not allowed (use http: or https:)`);
+      }
+    } catch {
+      errs.push(`${loc}: invalid URL "${link.url}"`);
+    }
+  });
+}
+
 export function validatePayload(payload, label = 'spec-data', opts = {}) {
   const { allowDraft = false } = opts;
   const errs = [];
@@ -305,6 +332,18 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
 
   if (spec.keystone?.id && !seenQ.has(spec.keystone.id)) {
     errs.push(`${label}: keystone "${spec.keystone.id}" not found in spec.questions`);
+  }
+
+  validateLinks(spec.links, `${label}: spec`, errs);
+  for (const g of spec.groups || []) {
+    if (g && typeof g === 'object') {
+      validateLinks(g.links, `${label}: group "${g.id || '?'}"`, errs);
+    }
+  }
+  for (const q of spec.questions) {
+    if (q && typeof q === 'object') {
+      validateLinks(q.links, `${label}: question "${q.id || '?'}"`, errs);
+    }
   }
 
   const openCount = spec.spec?.openCount;

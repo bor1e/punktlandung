@@ -91,6 +91,10 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .why{margin:10px 0 0;font-size:13.5px;color:var(--fg-2)}
 .qfoot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-size:12.5px;color:var(--fg-3)}
 .qfoot .link{margin-left:auto}
+.extlinks{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.extlink{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:2px 10px;font-size:12px;color:#1c4fa0;text-decoration:none}
+.extlink:hover{border-color:var(--pri-20);background:var(--pri-10);text-decoration:none}
+.extkind{font:600 10.5px ui-monospace,Consolas,monospace;text-transform:uppercase;letter-spacing:.02em;background:var(--soft);color:var(--fg-2);border-radius:4px;padding:1px 5px}
 .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--ne-bg);margin:10px 0}
 .stack i{display:block;height:100%}
 .legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
@@ -126,7 +130,7 @@ ul.plain,ol.plain{margin:6px 0;padding-left:20px}ul.plain li,ol.plain li{margin:
 </aside>
 <main id="main"><noscript>JavaScript is required to view this interactive overview.</noscript></main>
 </div>
-<script type="application/json" id="spec-data">{"context":{"$schema":"../../schema/context.schema.json","lang":"en","org":"Product Delivery Team","assignmentNote":"RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.","principles":["Legal, compliance, and customer-contract requirements take precedence over product or sourcing preferences.","Security and data-access boundaries take precedence over convenience.","Standard platform patterns take precedence over custom one-off solutions."],"defaultRule":"Whoever proposes deviating from the org standard carries the burden of proof; if unresolved by deadline, the reasoned proposal or standard applies.","constraints":["An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.","Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."],"parties":[{"id":"BIZ","name":"Business","short":"Biz","color":"#7b3fb5","role":"Business & Compliance Stakeholders","job":"Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.","consultWhen":"Customer-visible behavior, personal data (PII), or regulatory/contractual rules are affected.","isPlatform":false},{"id":"PO","name":"Product Owner","short":"PO","color":"#1c6dd0","role":"Product Management","job":"Decides UX trade-offs, defaults, and acceptance criteria where proposals exist.","isPlatform":false},{"id":"ARCH","name":"Architect","short":"Arch","color":"#0e7c86","role":"Software Architect","job":"Decides execution architecture, API contracts, and performance bounds.","isPlatform":false},{"id":"PLAT","name":"Platform Team","short":"Plat","color":"#5c7a1f","role":"Central Platform & Infrastructure","job":"Answers no product questions; consulted only if background workers, queues, or deployment config change.","consultWhen":"Background workers, queues, CI/CD pipelines, or deployment config change.","isPlatform":true}]},"spec":{"$schema":"../../schema/spec.schema.json","id":"order-csv-export","logo":"EX","brand":"Order Export","subtitle":"Generic plan.md example","title":"CSV Export for Order History","lead":"Open points extracted from plan.md (v0.1.0). Team roles, colors, and constraints come from the reusable context.json.","spec":{"file":"examples/generic-plan/plan.md","version":"0.1.0","date":"2026-11-26","openCount":4,"unprovableCount":1},"sourcesBadges":[{"label":"Input","value":"plan.md only"}],"keystone":{"id":"OQ-1","mootOption":"1","tag":"Sync only","mootStatus":"not needed for async","openBanner":"Decide first: Synchronous download vs. asynchronous background job. This determines whether row-cap and timeout limits apply.","mootBanner":"Async background job selected: synchronous row-limit questions are greyed out, and Platform must be consulted on queue/worker infra."},"groups":[{"id":"core","title":"Execution & Limits"},{"id":"data","title":"Data & Format"}],"topics":{},"questions":[{"id":"OQ-1","group":"core","topic":null,"keystoneDependent":false,"title":"Synchronous download vs. asynchronous job","question":"How should the CSV export be generated and delivered to the customer?","context":"plan.md §3 (OQ-1) and §2 (U-1: 'must feel fast'). No delivery mechanism is specified yet.","options":["Synchronous HTTP download directly from the Order History page","Asynchronous background job that emails a download link when ready"],"proposal":0,"reason":"Requires no queue or email infrastructure and matches typical B2C order counts; revisit if exports routinely exceed 5,000 rows.","raci":{"ARCH":"A","PO":"R","BIZ":"C","PLAT":"C"},"ref":"OQ-1, U-1","dependsOn":[]},{"id":"OQ-2","group":"core","topic":null,"keystoneDependent":true,"mootWhen":{"id":"OQ-1","eq":"1","reason":"not needed for async"},"title":"Maximum rows for synchronous export","question":"What hard row limit should apply to a single synchronous CSV download?","context":"plan.md §3 (OQ-2). Needed to turn U-1 ('feel fast') into a testable bound.","options":["Up to 5,000 rows (show prompt to narrow date filter above limit)","Up to 1,000 rows (show prompt to narrow date filter above limit)","No hard limit (stream response)"],"proposal":0,"reason":"5,000 rows serialize in under 500 ms and cover 99% of customer histories without risking gateway timeouts.","raci":{"PO":"A","ARCH":"R","BIZ":"C"},"ref":"OQ-2, U-1","dependsOn":["OQ-1"]},{"id":"OQ-3","group":"data","topic":null,"keystoneDependent":false,"title":"PII fields in exported CSV","question":"Should customer PII (shipping street, phone number) be included in the CSV?","context":"plan.md §1 lists order number, date, amount, currency, status. §3 (OQ-3) asks whether shipping address/phone should also be exported.","options":["Exclude shipping street and phone number (keep only plan.md §1 columns)","Include full shipping address and phone number"],"proposal":0,"reason":"Follows data minimization (GDPR) and avoids exporting extra PII into local spreadsheets.","raci":{"BIZ":"A","PO":"C","ARCH":"I"},"ref":"OQ-3","dependsOn":[]},{"id":"OQ-4","group":"data","topic":null,"keystoneDependent":false,"title":"CSV encoding and delimiter","question":"Which character encoding and delimiter does our target accounting/Excel setup expect?","context":"plan.md §3 (OQ-4). Fact question depending on customer/accounting tools.","options":["UTF-8 with BOM and semicolon (;) — standard for German/EU Excel","UTF-8 without BOM and comma (,) — RFC 4180 standard"],"proposal":null,"reason":"No proposal: fact question — Business/Operations knows which locale and import tools customers use.","raci":{"BIZ":"AR","PO":"C","ARCH":"I"},"ref":"OQ-4","dependsOn":[]}],"outOfScope":["Scheduled recurring exports (plan.md §4)","PDF or XLSX export formats (plan.md §4)"],"sources":["examples/generic-plan/plan.md (v0.1.0)","examples/generic-plan/context.json (shared team context)"]}}</script>
+<script type="application/json" id="spec-data">{"context":{"$schema":"../../schema/context.schema.json","lang":"en","org":"Product Delivery Team","assignmentNote":"RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.","principles":["Legal, compliance, and customer-contract requirements take precedence over product or sourcing preferences.","Security and data-access boundaries take precedence over convenience.","Standard platform patterns take precedence over custom one-off solutions."],"defaultRule":"Whoever proposes deviating from the org standard carries the burden of proof; if unresolved by deadline, the reasoned proposal or standard applies.","constraints":["An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.","Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."],"parties":[{"id":"BIZ","name":"Business","short":"Biz","color":"#7b3fb5","role":"Business & Compliance Stakeholders","job":"Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.","consultWhen":"Customer-visible behavior, personal data (PII), or regulatory/contractual rules are affected.","isPlatform":false},{"id":"PO","name":"Product Owner","short":"PO","color":"#1c6dd0","role":"Product Management","job":"Decides UX trade-offs, defaults, and acceptance criteria where proposals exist.","isPlatform":false},{"id":"ARCH","name":"Architect","short":"Arch","color":"#0e7c86","role":"Software Architect","job":"Decides execution architecture, API contracts, and performance bounds.","isPlatform":false},{"id":"PLAT","name":"Platform Team","short":"Plat","color":"#5c7a1f","role":"Central Platform & Infrastructure","job":"Answers no product questions; consulted only if background workers, queues, or deployment config change.","consultWhen":"Background workers, queues, CI/CD pipelines, or deployment config change.","isPlatform":true}]},"spec":{"$schema":"../../schema/spec.schema.json","id":"order-csv-export","logo":"EX","brand":"Order Export","subtitle":"Generic plan.md example","title":"CSV Export for Order History","lead":"Open points extracted from plan.md (v0.1.0). Team roles, colors, and constraints come from the reusable context.json.","spec":{"file":"examples/generic-plan/plan.md","version":"0.1.0","date":"2026-11-26","openCount":4,"unprovableCount":1},"sourcesBadges":[{"label":"Input","value":"plan.md only"}],"links":[{"label":"examples/generic-plan/plan.md","url":"https://github.com/bor1e/punktlandung/blob/main/examples/generic-plan/plan.md"}],"keystone":{"id":"OQ-1","mootOption":"1","tag":"Sync only","mootStatus":"not needed for async","openBanner":"Decide first: Synchronous download vs. asynchronous background job. This determines whether row-cap and timeout limits apply.","mootBanner":"Async background job selected: synchronous row-limit questions are greyed out, and Platform must be consulted on queue/worker infra."},"groups":[{"id":"core","title":"Execution & Limits"},{"id":"data","title":"Data & Format"}],"topics":{},"questions":[{"id":"OQ-1","group":"core","topic":null,"keystoneDependent":false,"title":"Synchronous download vs. asynchronous job","question":"How should the CSV export be generated and delivered to the customer?","context":"plan.md §3 (OQ-1) and §2 (U-1: 'must feel fast'). No delivery mechanism is specified yet.","options":["Synchronous HTTP download directly from the Order History page","Asynchronous background job that emails a download link when ready"],"proposal":0,"reason":"Requires no queue or email infrastructure and matches typical B2C order counts; revisit if exports routinely exceed 5,000 rows.","raci":{"ARCH":"A","PO":"R","BIZ":"C","PLAT":"C"},"ref":"OQ-1, U-1","links":[{"label":"plan.md §3 Open Questions","url":"https://github.com/bor1e/punktlandung/blob/main/examples/generic-plan/plan.md"}],"dependsOn":[]},{"id":"OQ-2","group":"core","topic":null,"keystoneDependent":true,"mootWhen":{"id":"OQ-1","eq":"1","reason":"not needed for async"},"title":"Maximum rows for synchronous export","question":"What hard row limit should apply to a single synchronous CSV download?","context":"plan.md §3 (OQ-2). Needed to turn U-1 ('feel fast') into a testable bound.","options":["Up to 5,000 rows (show prompt to narrow date filter above limit)","Up to 1,000 rows (show prompt to narrow date filter above limit)","No hard limit (stream response)"],"proposal":0,"reason":"5,000 rows serialize in under 500 ms and cover 99% of customer histories without risking gateway timeouts.","raci":{"PO":"A","ARCH":"R","BIZ":"C"},"ref":"OQ-2, U-1","dependsOn":["OQ-1"]},{"id":"OQ-3","group":"data","topic":null,"keystoneDependent":false,"title":"PII fields in exported CSV","question":"Should customer PII (shipping street, phone number) be included in the CSV?","context":"plan.md §1 lists order number, date, amount, currency, status. §3 (OQ-3) asks whether shipping address/phone should also be exported.","options":["Exclude shipping street and phone number (keep only plan.md §1 columns)","Include full shipping address and phone number"],"proposal":0,"reason":"Follows data minimization (GDPR) and avoids exporting extra PII into local spreadsheets.","raci":{"BIZ":"A","PO":"C","ARCH":"I"},"ref":"OQ-3","dependsOn":[]},{"id":"OQ-4","group":"data","topic":null,"keystoneDependent":false,"title":"CSV encoding and delimiter","question":"Which character encoding and delimiter does our target accounting/Excel setup expect?","context":"plan.md §3 (OQ-4). Fact question depending on customer/accounting tools.","options":["UTF-8 with BOM and semicolon (;) — standard for German/EU Excel","UTF-8 without BOM and comma (,) — RFC 4180 standard"],"proposal":null,"reason":"No proposal: fact question — Business/Operations knows which locale and import tools customers use.","raci":{"BIZ":"AR","PO":"C","ARCH":"I"},"ref":"OQ-4","dependsOn":[]}],"outOfScope":["Scheduled recurring exports (plan.md §4)","PDF or XLSX export formats (plan.md §4)"],"sources":["examples/generic-plan/plan.md (v0.1.0)","examples/generic-plan/context.json (shared team context)"]}}</script>
 <script type="application/json" id="saved">{}</script>
 <script>
 (function(){
@@ -197,7 +201,7 @@ var T={
   codeLabel:'Antwort-Code (für merge-answers.mjs)',
   srcTitle:'Abgrenzung und Quellen',
   srcLead:function(f,v){return 'Diese Seite ist eine Lesefassung von <span class="mono">'+f+'</span>, Version '+v+'. Verbindlich ist das Dokument. Die Aufteilung, die Antwortoptionen und die Zuständigkeiten sind Vorschläge und keine Anforderungen.'},
-  outTitle:'Nicht Teil dieser Ausbaustufe', srcListTitle:'Quellen', glossaryTitle:'Begriffe',
+  outTitle:'Nicht Teil dieser Ausbaustufe', srcListTitle:'Quellen', linksTitle:'Verknüpfte Ressourcen', glossaryTitle:'Begriffe',
   otherTxt:'Sonstiges: ',
   mootTag:'entfällt'
  },
@@ -262,7 +266,7 @@ var T={
   codeLabel:'Answer code (for merge-answers.mjs)',
   srcTitle:'Scope & Sources',
   srcLead:function(f,v){return 'Reading version of <span class="mono">'+f+'</span> (version '+v+'). The source document remains authoritative; groupings, options, and RACI assignments are proposals.'},
-  outTitle:'Out of Scope', srcListTitle:'Sources', glossaryTitle:'Glossary',
+  outTitle:'Out of Scope', srcListTitle:'Sources', linksTitle:'Linked Resources', glossaryTitle:'Glossary',
   otherTxt:'Other: ',
   mootTag:'moot'
  }
@@ -290,7 +294,8 @@ var Q=(SPEC.questions||[]).map(function(q){
   id:q.id, tp:q.topic||null, uc:q.group, a:!!q.keystoneDependent, mootWhen:mw,
   t:q.title, q:q.question, ctx:q.context||'', details:q.details||null,
   o:q.options||[], rec:(q.proposal===undefined?null:q.proposal), why:q.reason||'',
-  r:q.raci||{}, fs:q.ref||'', dep:(q.dependsOn&&q.dependsOn.length?q.dependsOn:null)
+  r:q.raci||{}, fs:q.ref||'', dep:(q.dependsOn&&q.dependsOn.length?q.dependsOn:null),
+  links:Array.isArray(q.links)?q.links:[]
  };
 });
 var QI={};Q.forEach(function(q){QI[q.id]=q});
@@ -362,6 +367,27 @@ function count(fn){return Q.filter(fn).length}
 function roleName(){return S.role?P[S.role].k:T.allRolesLower}
 
 /* ---------- Components ---------- */
+var KIND_LABEL={figma:'Figma',jira:'Jira',confluence:'Confluence',github:'GitHub',gitlab:'GitLab',ado:'Azure DevOps',doc:'Link'};
+function safeUrl(u){var s=String(u||'').trim();return /^https?:\/\/\S+$/i.test(s)?s:''}
+function linkKind(l){
+ if(l&&l.kind&&KIND_LABEL[l.kind]){return l.kind}
+ var u=String((l&&l.url)||'').toLowerCase();
+ if(u.indexOf('figma.com')>=0){return 'figma'}
+ if(u.indexOf('atlassian.net')>=0){return /\/wiki(\/|$)/.test(u)?'confluence':'jira'}
+ if(u.indexOf('confluence')>=0){return 'confluence'}
+ if(u.indexOf('jira')>=0){return 'jira'}
+ if(u.indexOf('github.com')>=0||u.indexOf('://github.')>=0){return 'github'}
+ if(u.indexOf('gitlab.com')>=0||u.indexOf('://gitlab.')>=0){return 'gitlab'}
+ if(u.indexOf('dev.azure.com')>=0||u.indexOf('.visualstudio.com')>=0){return 'ado'}
+ return 'doc';
+}
+function linkPill(l){
+ var url=safeUrl(l&&l.url);if(!url){return ''}
+ var lbl=String((l&&l.label)||'').trim()||url;
+ var k=linkKind(l);
+ return '<a class="extlink" href="'+h(url)+'" target="_blank" rel="noopener noreferrer"><span class="extkind">'+h(KIND_LABEL[k])+'</span>'+h(lbl)+' ↗</a>';
+}
+function linksHtml(arr){return (arr||[]).map(linkPill).filter(Boolean).join('')}
 function pchip(p,outline,label){var c=h(P[p].c);return '<span class="pc'+(outline?' o':'')+'" style="'+(outline?'color:'+c+';border-color:'+c:'background:'+c+';border-color:'+c)+'">'+h(label||P[p].k)+'</span>'}
 function whoHtml(q){
  var d=decider(q),R=ORDER.filter(function(p){return has(q,p,'R')&&p!==d});
@@ -395,6 +421,7 @@ function qCard(q){
  if(q.why){s+='<p class="why">'+(q.rec!=null?'<b>'+T.proposalPrefix+k.charAt(q.rec)+':</b> ':'')+h(q.why)+'</p>'}
  s+='<div class="qfoot">'+(q.fs?'<span>'+T.refLabel+': '+h(q.fs)+'</span>':'');
  if(q.dep){s+='<span>'+T.depLabel+': '+q.dep.map(function(d){return '<a href="#fragen:'+h(d)+'">'+h(d)+'</a>'}).join(', ')+'</span>'}
+ var ql=linksHtml(q.links);if(ql){s+='<span class="extlinks">'+ql+'</span>'}
  s+='<button class="link" type="button" data-clear>'+T.clearAns+'</button></div></article>';
  return s;
 }
@@ -439,6 +466,7 @@ V.ueberblick=function(){
  s+='<div class="sources"><span class="src"><b>'+T.srcBasis+'</b>'+h(SPEC_FILE)+', '+T.srcVersion+' '+h(SPEC_VER)+'</span>';
  if(SPEC_DATE){s+='<span class="src"><b>'+T.srcDate+'</b>'+h(SPEC_DATE)+'</span>'}
  (SPEC.sourcesBadges||[]).forEach(function(b){s+='<span class="src"><b>'+h(b.label)+'</b>'+h(b.value)+'</span>'});
+ s+=linksHtml(SPEC.links);
  s+='</div>';
  if(SPEC.anonBanner){s+='<div class="banner info">ⓘ <span>'+h(SPEC.anonBanner)+'</span></div>'}
  if(KS&&QI[KS.id]){
@@ -487,7 +515,7 @@ V.ueberblick=function(){
 
 function ucView(u){
  var s='<div class="crumb"><a href="#ueberblick">'+T.navOverview+'</a> › '+T.ucCrumb+'</div><h1>'+h(u.badge?u.badge+' · '+u.title:u.title)+'</h1>';
- s+='<div class="meta">'+(u.actor?'<span>'+T.ucActor+': '+h(u.actor)+'</span>':'')+(u.src?'<span>'+T.ucSource+': '+h(u.src)+'</span>':'')+(u.ref?'<span>'+T.ucRef+': '+h(u.ref)+'</span>':'')+'</div>';
+ s+='<div class="meta">'+(u.actor?'<span>'+T.ucActor+': '+h(u.actor)+'</span>':'')+(u.src?'<span>'+T.ucSource+': '+h(u.src)+'</span>':'')+(u.ref?'<span>'+T.ucRef+': '+h(u.ref)+'</span>':'')+(u.links&&u.links.length?'<span class="extlinks">'+linksHtml(u.links)+'</span>':'')+'</div>';
  if(KS&&KS.mootGroups&&KS.mootGroups.indexOf(u.id)>=0&&ans(KS.id).o===String(KS.mootOption)&&KS.mootGroupBanner){
   s+='<div class="banner info">ⓘ <span>'+h(KS.mootGroupBanner)+'</span></div>';
  }
@@ -515,7 +543,9 @@ V.fragen=function(){
   var qs=list.filter(function(q){return q.uc===g.id});
   if(qs.length){
    var hdr=g.badge?(g.badge+' · '+g.title):g.title;
-   s+='<h2>'+h(hdr)+'</h2>'+topics(qs).map(tpCard).join('');
+   s+='<h2>'+h(hdr)+'</h2>';
+   var gl=linksHtml(g.links);if(gl){s+='<div class="extlinks" style="margin:-4px 0 10px">'+gl+'</div>'}
+   s+=topics(qs).map(tpCard).join('');
   }
  });
  return s;
@@ -608,6 +638,11 @@ V.quellen=function(){
  var s='<h1>'+T.srcTitle+'</h1><p class="lead-in">'+T.srcLead(h(SPEC_FILE),h(SPEC_VER))+'</p>';
  if(SPEC.outOfScope&&SPEC.outOfScope.length){s+='<h2>'+T.outTitle+'</h2><div class="panel"><ul class="plain">'+SPEC.outOfScope.map(function(o){return '<li>'+h(o)+'</li>'}).join('')+'</ul></div>'}
  if(SPEC.sources&&SPEC.sources.length){s+='<h2>'+T.srcListTitle+'</h2><div class="panel"><ul class="plain">'+SPEC.sources.map(function(x){return '<li>'+h(x)+'</li>'}).join('')+'</ul></div>'}
+ var seenUrls={},allLinks=[];
+ function addLinks(arr){(arr||[]).forEach(function(l){var u=safeUrl(l&&l.url);if(u&&!seenUrls[u]){seenUrls[u]=true;allLinks.push(l)}})}
+ addLinks(SPEC.links);GROUPS.forEach(function(g){addLinks(g.links)});Q.forEach(function(q){addLinks(q.links)});
+ var allLinksHtml=linksHtml(allLinks);
+ if(allLinksHtml){s+='<h2>'+T.linksTitle+'</h2><div class="panel"><div class="extlinks" style="padding:10px 0">'+allLinksHtml+'</div></div>'}
  if(SPEC.glossary&&SPEC.glossary.length){s+='<h2>'+T.glossaryTitle+'</h2><div class="panel wide"><table>'+SPEC.glossary.map(function(g){return '<tr><td style="width:170px"><b>'+h(g[0])+'</b></td><td>'+h(g[1])+'</td></tr>'}).join('')+'</table></div>'}
  return s;
 };
