@@ -10,10 +10,13 @@ const args = process.argv.slice(2);
 let ctxArg = '';
 let specArg = '';
 let outArg = '';
+let isDraft = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '-o' || args[i] === '--out') {
     outArg = args[++i] || '';
+  } else if (args[i] === '--draft') {
+    isDraft = true;
   } else if (!ctxArg) {
     ctxArg = args[i];
   } else if (!specArg) {
@@ -25,7 +28,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!ctxArg || !specArg || !outArg) {
-  console.error('Usage: node scripts/build.mjs <context.json> <spec.json> -o <output.html>');
+  console.error('Usage: node scripts/build.mjs <context.json> <spec.json> -o <output.html> [--draft]');
   process.exit(1);
 }
 
@@ -35,10 +38,13 @@ const context = JSON.parse(fs.readFileSync(path.resolve(root, ctxArg), 'utf8'));
 const spec = JSON.parse(fs.readFileSync(path.resolve(root, specArg), 'utf8'));
 const payload = { context, spec };
 
-const { errs, stats } = validatePayload(payload, `${specArg}`);
+const { errs, stats } = validatePayload(payload, `${specArg}`, { allowDraft: isDraft });
 if (errs.length > 0) {
   for (const e of errs) console.error(`ERROR: ${e}`);
   process.exit(1);
+}
+if (isDraft) {
+  console.error('Warning: built in --draft mode (contains placeholder options; not ready for stakeholders).');
 }
 
 const lang = context.lang === 'de' ? 'de' : 'en';

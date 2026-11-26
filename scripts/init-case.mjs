@@ -38,22 +38,53 @@ const verMatch = md.match(/\*\*Version:\*\*\s*([^\s]+)/i);
 const specVersion = verMatch ? verMatch[1] : '0.1.0';
 const relInput = path.relative(root, inPath) || path.basename(inPath);
 
-// Extract open points from [NEEDS CLARIFICATION: ...], OQ-x / Q-x / U-x bullets, or unchecked checkboxes
+// Extract open points from:
+// 1. [NEEDS CLARIFICATION: ...] anywhere
+// 2. Explicit open-point IDs (OQ-x, OPEN-x, Q-x, U-x, TODO-x) anywhere — never US-x / FR-x / REQ-x
+// 3. Plain bullets or numbered items inside Open Questions / Clarifications / Decisions / Unprovable headings
 const extracted = [];
 let idx = 1;
+let inOpenSection = false;
+const OPEN_HEADING_RE = /\b(open\s+questions?|open\s+points?|clarifications?|decisions?|offene\s+(?:fragen|punkte)|unprovable|nicht\s+nachweisbar|todo)\b/i;
+
 for (const line of md.split(/\r?\n/)) {
+  const heading = line.match(/^#{1,6}\s+(.+)$/);
+  if (heading) {
+    inOpenSection = OPEN_HEADING_RE.test(heading[1]);
+    continue;
+  }
+
   const nc = line.match(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/i);
   if (nc) {
     extracted.push({ id: `Q-${idx++}`, text: nc[1].trim(), ref: `[NEEDS CLARIFICATION]` });
     continue;
   }
-  const tagged = line.match(/^\s*[-*]\s+`?([A-Z]{1,3}-\d+)`?(?:\s*\([^)]*\))?:\s*(.+)$/);
+
+  const tagged = line.match(/^\s*[-*]\s+`?((?:OQ|OPEN|Q|U|TODO)-\d+)`?(?:\s*\([^)]*\))?:\s*(.+)$/i);
   if (tagged) {
-    extracted.push({ id: tagged[1], text: tagged[2].trim(), ref: tagged[1] });
+    extracted.push({ id: tagged[1].toUpperCase(), text: tagged[2].trim(), ref: tagged[1].toUpperCase() });
     continue;
   }
+
+  if (inOpenSection) {
+    const item = line.match(/^\s*(?:[-*]|\d+[.)])\s+(?:\[\s\]\s+)?(.+)$/);
+    if (item) {
+      let rawText = item[1].trim();
+      let id = `Q-${idx++}`;
+      let ref = id;
+      const prefix = rawText.match(/^(?:`|\*\*)?([A-Z]{1,4}-?\d+)(?:`|\*\*)?:\s*(.+)$/);
+      if (prefix) {
+        id = prefix[1];
+        ref = prefix[1];
+        rawText = prefix[2].trim();
+      }
+      extracted.push({ id, text: rawText, ref });
+      continue;
+    }
+  }
+
   const todo = line.match(/^\s*[-*]\s+\[\s\]\s+(.+)$/);
-  if (todo) {
+  if (todo && /(\?|\btbd\b|\btodo\b|\bclarify\b)/i.test(todo[1])) {
     extracted.push({ id: `Q-${idx++}`, text: todo[1].trim(), ref: 'TODO' });
   }
 }

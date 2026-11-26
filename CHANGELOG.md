@@ -2,6 +2,17 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.3.1 (2026-11-26)
+
+Bug fixes from external QA:
+
+- **Strict single-decider resolution (`merge-answers.mjs`):** Non-decider (`R`/`C`/`I`) answers are now reported as `suggested (waiting for <decider>)` and never resolve a question or trigger `mootWhen` / keystone muting (`--copilot-prompt` marks them `"Do NOT Apply Yet"`).
+- **Option-hash tampering/drift protection (`overview.html`, `merge-answers.mjs`):** Each answer now records an FNV-1a hash (`oh`) of `q.options` and `specVersion`; `merge-answers.mjs` refuses stale answers with exit code `2` if options changed after the reply was sent.
+- **Cross-spec refusal (`merge-answers.mjs`):** Merging `.html` or `PKL1:` replies from a different `spec.id` now fails immediately with exit code `1`.
+- **Smarter Markdown extraction (`init-case.mjs`):** Extracts plain bullets under `## Open Questions` / `## Clarifications` / `## Decisions` headings and ignores unrelated `US-x` / `FR-x` / `REQ-x` story bullets.
+- **Draft placeholder guard (`validate.mjs`, `build.mjs`):** Rejects unedited `init-case.mjs` placeholder options unless `--draft` is passed explicitly.
+- **Mergeable email & text replies (`overview.html`):** Appends the `PKL1:` answer code to `summaryText()` and protects the footer from truncation in `mailto:`.
+
 ## 2.3.0 (2026-11-26)
 
 Launch & distribution polish:

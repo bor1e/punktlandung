@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export function validatePayload(payload, label = 'spec-data') {
+function isPlaceholderText(s) {
+  return /replace with concrete choice|Review with AI\/team|^Option [A-D]\s*\(/i.test(String(s || ''));
+}
+
+export function validatePayload(payload, label = 'spec-data', opts = {}) {
+  const { allowDraft = false } = opts;
   const errs = [];
   const ctx = payload?.context;
   const spec = payload?.spec;
@@ -76,6 +81,8 @@ export function validatePayload(payload, label = 'spec-data') {
     }
     if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 4) {
       errs.push(`${label}: question "${q.id}" must have 2..4 options`);
+    } else if (!allowDraft && (q.options.some(isPlaceholderText) || isPlaceholderText(q.reason) || isPlaceholderText(q.title))) {
+      errs.push(`${label}: question "${q.id}" contains draft placeholder text — fill concrete choices or pass --draft to preview`);
     }
 
     if (!q.raci || typeof q.raci !== 'object') {

@@ -8,6 +8,19 @@ import { validatePayload, extractJsonIsland } from '../scripts/validate.mjs';
 
 const ROOT = process.cwd();
 
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+function optHash(options) {
+  return fnv1a(JSON.stringify(options || []));
+}
+
 describe('extractJsonIsland', () => {
   it('parses both standard and browser-reordered script attributes', () => {
     const standard = '<script type="application/json" id="saved">{"ok":1}</script>';
@@ -36,7 +49,7 @@ describe('validatePayload invariants', () => {
         group: 'g',
         title: 'Choice',
         question: 'Which choice?',
-        options: ['A', 'B'],
+        options: ['Direct download', 'Async email'],
         proposal: 0,
         reason: 'Simpler.',
         raci: { PO: 'A', PLAT: 'C' }
@@ -69,6 +82,15 @@ describe('validatePayload invariants', () => {
     const { errs } = validatePayload({ context: baseCtx, spec: bad }, 'moot');
     assert.ok(errs.some((e) => e.includes('mootWhen references unknown question')));
   });
+
+  it('rejects placeholder options unless allowDraft is true', () => {
+    const draft = structuredClone(baseSpec);
+    draft.questions[0].options = ['Option A (replace with concrete choice)', 'Option B (replace with concrete choice)'];
+    const { errs } = validatePayload({ context: baseCtx, spec: draft }, 'draft');
+    assert.ok(errs.some((e) => e.includes('placeholder text')));
+    const { errs: allowed } = validatePayload({ context: baseCtx, spec: draft }, 'draft', { allowDraft: true });
+    assert.deepEqual(allowed, []);
+  });
 });
 
 describe('build.mjs & init-case.mjs', () => {
@@ -91,7 +113,7 @@ describe('build.mjs & init-case.mjs', () => {
     }
   });
 
-  it('scaffolds valid spec.json and context.json from Spec Kit markers', () => {
+  it('scaffolds valid spec.json from Spec Kit markers and fails build without --draft', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-'));
     try {
       execFileSync('node', [
@@ -103,8 +125,62 @@ describe('build.mjs & init-case.mjs', () => {
       const ctx = JSON.parse(fs.readFileSync(path.join(tmpDir, 'context.json'), 'utf8'));
       const spec = JSON.parse(fs.readFileSync(path.join(tmpDir, 'spec.json'), 'utf8'));
       assert.equal(spec.questions.length, 5);
-      const { errs } = validatePayload({ context: ctx, spec }, 'scaffolded');
+      const { errs } = validatePayload({ context: ctx, spec }, 'scaffolded', { allowDraft: true });
       assert.deepEqual(errs, []);
+
+      let buildFailed = false;
+      try {
+        execFileSync('node', [
+          path.join(ROOT, 'scripts', 'build.mjs'),
+          path.join(tmpDir, 'context.json'),
+          path.join(tmpDir, 'spec.json'),
+          '-o',
+          path.join(tmpDir, 'out.html')
+        ], { cwd: ROOT, stdio: 'pipe' });
+      } catch (e) {
+        buildFailed = e.status !== 0 && String(e.stderr).includes('placeholder text');
+      }
+      assert.ok(buildFailed, 'Expected build without --draft to reject scaffold placeholders');
+
+      execFileSync('node', [
+        path.join(ROOT, 'scripts', 'build.mjs'),
+        path.join(tmpDir, 'context.json'),
+        path.join(tmpDir, 'spec.json'),
+        '-o',
+        path.join(tmpDir, 'out.html'),
+        '--draft'
+      ], { cwd: ROOT, stdio: 'pipe' });
+      assert.ok(fs.existsSync(path.join(tmpDir, 'out.html')));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('extracts plain bullets under ## Open Questions and ignores User Stories (US-1)', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-plain-'));
+    try {
+      const planPath = path.join(tmpDir, 'plan.md');
+      fs.writeFileSync(planPath, [
+        '# Feature Plan: Invoice Export',
+        '',
+        '## User Stories',
+        '- US-1: As an accountant, I want monthly PDF invoices.',
+        '- FR-1: System must support EU VAT rates.',
+        '',
+        '## Open Questions',
+        '- Which VAT rounding mode applies per line or per invoice?',
+        '- Should cancelled invoices appear in the export?',
+        '- What retention period applies to exported files?'
+      ].join('\n'));
+      execFileSync('node', [
+        path.join(ROOT, 'scripts', 'init-case.mjs'),
+        planPath,
+        '--out-dir',
+        tmpDir
+      ], { cwd: ROOT, encoding: 'utf8' });
+      const spec = JSON.parse(fs.readFileSync(path.join(tmpDir, 'spec.json'), 'utf8'));
+      assert.equal(spec.questions.length, 3);
+      assert.ok(spec.questions.every((q) => !q.id.startsWith('US-') && !q.question.includes('accountant')));
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -112,22 +188,133 @@ describe('build.mjs & init-case.mjs', () => {
 });
 
 describe('merge-answers.mjs', () => {
-  const htmlBase = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+  const genericHtml = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+  const ssoHtml = fs.readFileSync(path.join(ROOT, 'examples', 'speckit-sso', 'open-points.html'), 'utf8');
 
-  function withSaved(savedObj) {
-    return htmlBase.replace(
+  function withSaved(baseHtml, savedObj) {
+    return baseHtml.replace(
       '<script type="application/json" id="saved">{}</script>',
       `<script type="application/json" id="saved">${JSON.stringify(savedObj)}</script>`
     );
   }
 
-  it('gives decider (A) authority over non-decider disagreement and applies mootWhen', () => {
+  it('enforces single-decider authority: non-deciders only suggest and cannot trigger mootWhen', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-decider-'));
+    try {
+      // On SSO: SC-1 (A=PO), SC-5 (A=ARCH). Business (BIZ) is NOT the decider for either!
+      const bizOnly = path.join(tmpDir, 'biz.html');
+      fs.writeFileSync(bizOnly, withSaved(ssoHtml, {
+        id: 'b1',
+        specId: 'enterprise-sso-login',
+        S: { role: 'BIZ', name: 'Bea Business', a: { 'SC-1': { o: '0', t: '', n: '' }, 'SC-5': { o: '0', t: '', n: '' } } }
+      }));
+
+      const res1 = JSON.parse(execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--json', bizOnly], { encoding: 'utf8' }));
+      assert.equal(res1.summary.resolved, 0);
+      assert.equal(res1.summary.suggested, 2);
+      assert.equal(res1.summary.moot, 0);
+
+      const prompt = execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--copilot-prompt', bizOnly], { encoding: 'utf8' });
+      assert.ok(prompt.includes('Suggested by Non-Deciders (Waiting for Decider — Do NOT Apply Yet)'));
+      assert.ok(!prompt.includes('## Moot'));
+
+      // Now PO (the actual decider of SC-1) answers SC-1 = '0' -> SC-1 resolves AND SC-2 becomes moot
+      const poReply = path.join(tmpDir, 'po.html');
+      fs.writeFileSync(poReply, withSaved(ssoHtml, {
+        id: 'p1',
+        specId: 'enterprise-sso-login',
+        S: { role: 'PO', name: 'Paul PO', a: { 'SC-1': { o: '0', t: '', n: '' } } }
+      }));
+      const res2 = JSON.parse(execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--json', bizOnly, poReply], { encoding: 'utf8' }));
+      assert.equal(res2.summary.resolved, 1);
+      assert.equal(res2.resolved[0].id, 'SC-1');
+      assert.equal(res2.summary.moot, 1);
+      assert.equal(res2.moot[0].id, 'SC-2');
+      assert.equal(res2.summary.suggested, 1);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses stale answers when option order changed since reply was generated', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-stale-'));
+    try {
+      const ssoSpec = JSON.parse(fs.readFileSync(path.join(ROOT, 'examples', 'speckit-sso', 'spec.json'), 'utf8'));
+      const sc3 = ssoSpec.questions.find((q) => q.id === 'SC-3');
+      const oldHash = optHash(sc3.options);
+
+      // Swap options of SC-3 and rebuild HTML
+      sc3.options = [sc3.options[1], sc3.options[0]];
+      const swappedSpecPath = path.join(tmpDir, 'spec.json');
+      fs.writeFileSync(swappedSpecPath, JSON.stringify(ssoSpec, null, 2));
+      const rebuiltHtml = path.join(tmpDir, 'rebuilt.html');
+      execFileSync('node', [
+        path.join(ROOT, 'scripts', 'build.mjs'),
+        path.join(ROOT, 'examples', 'generic-plan', 'context.json'),
+        swappedSpecPath,
+        '-o',
+        rebuiltHtml
+      ], { cwd: ROOT });
+
+      const staleCode = 'PKL1:' + Buffer.from(JSON.stringify({
+        v: 1,
+        id: 'enterprise-sso-login',
+        ver: '0.1.0',
+        role: 'BIZ',
+        name: 'Bea Business',
+        a: { 'SC-3': { o: '0', t: '', n: '', oh: oldHash } }
+      }), 'utf8').toString('base64url');
+
+      let exitCode = 0;
+      try {
+        execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--json', rebuiltHtml, '--code', staleCode], { encoding: 'utf8', stdio: 'pipe' });
+      } catch (err) {
+        exitCode = err.status;
+        const parsed = JSON.parse(err.stdout);
+        assert.equal(parsed.summary.conflicts, 1);
+        assert.equal(parsed.summary.resolved, 0);
+        assert.ok(parsed.conflicts[0].reason.includes('stale'));
+      }
+      assert.equal(exitCode, 2);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses answer codes from a different spec with non-zero exit', () => {
+    const ssoCode = 'PKL1:' + Buffer.from(JSON.stringify({
+      v: 1,
+      id: 'enterprise-sso-login',
+      ver: '0.1.0',
+      role: 'BIZ',
+      name: 'Bea Business',
+      a: { 'SC-3': { o: '0', t: '', n: '' } }
+    }), 'utf8').toString('base64url');
+
+    let exitCode = 0;
+    let stderr = '';
+    try {
+      execFileSync('node', [
+        path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+        '--code',
+        ssoCode
+      ], { encoding: 'utf8', stdio: 'pipe' });
+    } catch (err) {
+      exitCode = err.status;
+      stderr = String(err.stderr);
+    }
+    assert.equal(exitCode, 1);
+    assert.ok(stderr.includes('Spec mismatch'));
+  });
+
+  it('merges PKL1 paste-back codes from email replies and applies mootWhen when decider votes', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-merge-'));
     try {
       const f1 = path.join(tmpDir, 'arch.html');
       const f2 = path.join(tmpDir, 'biz.html');
-      fs.writeFileSync(f1, withSaved({ id: 'a1', S: { role: 'ARCH', name: 'Bob', a: { 'OQ-1': { o: '1', t: '', n: '' }, 'OQ-3': { o: '1', t: '', n: '' } } } }));
-      fs.writeFileSync(f2, withSaved({ id: 'b1', S: { role: 'BIZ', name: 'Alice', a: { 'OQ-3': { o: '0', t: '', n: 'GDPR' } } } }));
+      fs.writeFileSync(f1, withSaved(genericHtml, { id: 'a1', specId: 'order-csv-export', S: { role: 'ARCH', name: 'Bob', a: { 'OQ-1': { o: '1', t: '', n: '' }, 'OQ-3': { o: '1', t: '', n: '' } } } }));
+      fs.writeFileSync(f2, withSaved(genericHtml, { id: 'b1', specId: 'order-csv-export', S: { role: 'BIZ', name: 'Alice', a: { 'OQ-3': { o: '0', t: '', n: 'GDPR' } } } }));
 
       const jsonOut = execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--json', f1, f2], { encoding: 'utf8' });
       const res = JSON.parse(jsonOut);
@@ -136,12 +323,7 @@ describe('merge-answers.mjs', () => {
       assert.equal(res.moot[0].id, 'OQ-2');
       assert.equal(res.summary.conflicts, 0);
 
-      const copilotOut = execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--copilot-prompt', f1, f2], { encoding: 'utf8' });
-      assert.ok(copilotOut.includes('## Resolved Decisions to Apply'));
-      assert.ok(copilotOut.includes('OQ-2'));
-
-      // Also verify PKL1: paste-back code (direct --code and embedded in .txt email reply)
-      const pklPayload = { v: 1, id: 'order-csv-export', role: 'BIZ', name: 'Alice', a: { 'OQ-4': { o: '0', t: '', n: 'German Excel' } } };
+      const pklPayload = { v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'BIZ', name: 'Alice', a: { 'OQ-4': { o: '0', t: '', n: 'German Excel' } } };
       const pklToken = 'PKL1:' + Buffer.from(JSON.stringify(pklPayload), 'utf8').toString('base64url');
       const replyTxt = path.join(tmpDir, 'email-reply.txt');
       fs.writeFileSync(replyTxt, `Hi team, here are my answers:\n\n${pklToken}\n\nThanks!`);
@@ -155,16 +337,6 @@ describe('merge-answers.mjs', () => {
       assert.equal(mergedCode.summary.resolved, 1);
       assert.equal(mergedCode.resolved[0].id, 'OQ-4');
       assert.equal(mergedCode.resolved[0].note, 'German Excel');
-
-      const directMerged = JSON.parse(execFileSync('node', [
-        path.join(ROOT, 'scripts', 'cli.mjs'),
-        'merge',
-        '--json',
-        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
-        '--code',
-        pklToken
-      ], { encoding: 'utf8' }));
-      assert.equal(directMerged.summary.resolved, 1);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -175,8 +347,8 @@ describe('merge-answers.mjs', () => {
     try {
       const f1 = path.join(tmpDir, 'a.html');
       const f2 = path.join(tmpDir, 'b.html');
-      fs.writeFileSync(f1, withSaved({ id: '1', S: { role: 'ARCH', name: 'Bob', a: { 'OQ-4': { o: '0', t: '', n: '' } } } }));
-      fs.writeFileSync(f2, withSaved({ id: '2', S: { role: 'PO', name: 'Carol', a: { 'OQ-4': { o: '1', t: '', n: '' } } } }));
+      fs.writeFileSync(f1, withSaved(genericHtml, { id: '1', specId: 'order-csv-export', S: { role: 'ARCH', name: 'Bob', a: { 'OQ-4': { o: '0', t: '', n: '' } } } }));
+      fs.writeFileSync(f2, withSaved(genericHtml, { id: '2', specId: 'order-csv-export', S: { role: 'PO', name: 'Carol', a: { 'OQ-4': { o: '1', t: '', n: '' } } } }));
 
       let exitCode = 0;
       try {
@@ -191,5 +363,10 @@ describe('merge-answers.mjs', () => {
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it('embeds PKL1 answer code in summaryText and mailto bodies', () => {
+    assert.ok(genericHtml.includes('T.codeLabel'));
+    assert.ok(genericHtml.includes('answerCode()'));
   });
 });

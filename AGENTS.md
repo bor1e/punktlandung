@@ -10,7 +10,7 @@
 - Scaffold starter JSON from Markdown:
   `node scripts/init-case.mjs <plan.md|spec.md|proposal.md> [--context <context.json>] [--out-dir <dir>]`
 - Compile & validate offline HTML:
-  `node scripts/build.mjs <context.json> <spec.json> -o <open-points.html>`
+  `node scripts/build.mjs <context.json> <spec.json> -o <open-points.html> [--draft]`
 - Merge returned `.html` files and/or `PKL1:` codes into an AI-ready patch:
   `node scripts/merge-answers.mjs [--json|--copilot-prompt] <file-or-reply.html|.txt> [--code "PKL1:..."]`
 - Validate & run tests:
