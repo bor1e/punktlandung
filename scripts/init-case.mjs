@@ -7,11 +7,13 @@ let inputArg = '';
 let ctxArg = '';
 let outDirArg = '';
 let lang = 'en';
+let force = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--context' || args[i] === '-c') ctxArg = args[++i] || '';
   else if (args[i] === '--out-dir' || args[i] === '-d') outDirArg = args[++i] || '';
   else if (args[i] === '--lang' || args[i] === '-l') lang = args[++i] === 'de' ? 'de' : 'en';
+  else if (args[i] === '--force' || args[i] === '-f') force = true;
   else if (!inputArg) inputArg = args[i];
   else {
     console.error(`Unexpected argument: ${args[i]}`);
@@ -20,7 +22,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!inputArg) {
-  console.error('Usage: node scripts/init-case.mjs <plan.md|spec.md|proposal.md> [--context <context.json>] [--out-dir <dir>] [--lang en|de]');
+  console.error('Usage: node scripts/init-case.mjs <plan.md|spec.md|proposal.md> [--context <context.json>] [--out-dir <dir>] [--lang en|de] [--force]');
   process.exit(1);
 }
 
@@ -54,9 +56,11 @@ for (const line of md.split(/\r?\n/)) {
     continue;
   }
 
-  const nc = line.match(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/i);
-  if (nc) {
-    extracted.push({ id: `Q-${idx++}`, text: nc[1].trim(), ref: `[NEEDS CLARIFICATION]` });
+  const ncMatches = [...line.matchAll(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/gi)];
+  if (ncMatches.length > 0) {
+    for (const nc of ncMatches) {
+      extracted.push({ id: `Q-${idx++}`, text: nc[1].trim(), ref: `[NEEDS CLARIFICATION]` });
+    }
     continue;
   }
 
@@ -131,6 +135,19 @@ const spec = {
 };
 
 const specOut = path.join(outDir, 'spec.json');
+const ctxOut = path.join(outDir, 'context.json');
+
+if (!force) {
+  if (fs.existsSync(specOut)) {
+    console.error(`ERROR: ${path.relative(root, specOut)} already exists. Pass --force to overwrite.`);
+    process.exit(1);
+  }
+  if (!ctxArg && fs.existsSync(ctxOut)) {
+    console.error(`ERROR: ${path.relative(root, ctxOut)} already exists. Pass --force or --context.`);
+    process.exit(1);
+  }
+}
+
 fs.writeFileSync(specOut, JSON.stringify(spec, null, 2) + '\n', 'utf8');
 
 let ctxRelForCmd = ctxArg;
@@ -150,7 +167,6 @@ if (!ctxArg) {
       { id: 'PLAT', name: lang === 'de' ? 'Plattform-Team' : 'Platform Team', short: 'Plat', color: '#5c7a1f', role: 'Central Platform / Ops', job: 'Consulted only when build or deployment infra changes.', isPlatform: true }
     ]
   };
-  const ctxOut = path.join(outDir, 'context.json');
   fs.writeFileSync(ctxOut, JSON.stringify(defaultCtx, null, 2) + '\n', 'utf8');
   ctxRelForCmd = path.relative(root, ctxOut);
 }

@@ -41,15 +41,69 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-function decodeAnswerCode(token, sourceLabel) {
-  const b64url = token.replace(/^PKL1:/, '').trim();
+function tryParseCode(token) {
+  const b64url = token
+    .replace(/^PKL1:/, '')
+    .replace(/:PKL$/, '')
+    .replace(/[\s>]+/g, '');
+  if (!b64url || !/^[A-Za-z0-9_-]+$/.test(b64url)) {
+    throw new Error('malformed base64url payload');
+  }
   const obj = JSON.parse(Buffer.from(b64url, 'base64url').toString('utf8'));
-  return {
-    file: sourceLabel,
-    specId: obj.id || '',
-    specVersion: obj.ver || '',
-    state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
-  };
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new Error('decoded payload is not an object');
+  }
+  if (obj.a !== undefined && (typeof obj.a !== 'object' || obj.a === null || Array.isArray(obj.a))) {
+    throw new Error('decoded answers field must be an object');
+  }
+  return obj;
+}
+
+function decodeAnswerCode(token, sourceLabel) {
+  try {
+    const obj = tryParseCode(token);
+    return {
+      file: sourceLabel,
+      specId: obj.id || '',
+      specVersion: obj.ver || '',
+      state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
+    };
+  } catch (err) {
+    console.error(`ERROR: Invalid or truncated PKL1 answer code in ${sourceLabel}: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+function extractCodesFromText(raw, sourceFile) {
+  const delimited = [...raw.matchAll(/PKL1:([A-Za-z0-9_\-\s>]+?):PKL/g)];
+  if (delimited.length > 0) {
+    return delimited.map((m, idx) => decodeAnswerCode(m[0], `${sourceFile}#${idx + 1}`));
+  }
+
+  const legacy = [...raw.matchAll(/PKL1:([^\s]+(?:[ \t]*\r?\n[ \t>]*[A-Za-z0-9_-]+)*)/g)];
+  if (legacy.length === 0) {
+    console.error(`ERROR: ${sourceFile} contains no PKL1: answer code`);
+    process.exit(1);
+  }
+  return legacy.map((m, idx) => {
+    const label = `${sourceFile}#${idx + 1}`;
+    const chunks = m[0].split(/\r?\n/);
+    for (let len = chunks.length; len >= 1; len--) {
+      const candidate = chunks.slice(0, len).join('\n');
+      try {
+        const obj = tryParseCode(candidate);
+        return {
+          file: label,
+          specId: obj.id || '',
+          specVersion: obj.ver || '',
+          state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
+        };
+      } catch {
+        // try shorter slice if trailing prose line matched
+      }
+    }
+    return decodeAnswerCode(m[0], label);
+  });
 }
 
 const loaded = [];
@@ -73,14 +127,7 @@ for (const f of files) {
       state: saved.S || { role: '', name: '', a: {} }
     });
   } else {
-    const matches = raw.match(/PKL1:[A-Za-z0-9_-]+/g) || [];
-    if (matches.length === 0) {
-      console.error(`ERROR: ${f} contains no PKL1: answer code`);
-      process.exit(1);
-    }
-    matches.forEach((tok, idx) => {
-      loaded.push(decodeAnswerCode(tok, `${f}#${idx + 1}`));
-    });
+    loaded.push(...extractCodesFromText(raw, f));
   }
 }
 

@@ -2,6 +2,17 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.3.2 (2026-11-26)
+
+Security, resilience, and onboarding hardening from external code audit:
+
+- **Decider-only bulk accept (`template/overview.html`):** `"Accept proposals"` now requires selecting a specific role first and applies only to open questions that role decides (`A`).
+- **Wrap-resistant `PKL1:` codes (`template/overview.html`, `scripts/merge-answers.mjs`):** Added `:PKL` closing delimiter, stripped email line wraps and `>` quote prefixes before decoding, and replaced raw stack traces on corrupt codes with clean exit-1 errors.
+- **Overwrite guard & multi-marker extraction (`scripts/init-case.mjs`):** Refuses to overwrite existing `spec.json` / `context.json` unless `--force` is passed, and extracts multiple `[NEEDS CLARIFICATION: ...]` markers per line.
+- **Strict schema enforcement & standalone validation (`scripts/validate.mjs`):** Enforces hex `#rgb..#rrggbbaa` colors (and escapes colors in template HTML), non-empty string options, `/^[ARCI]+$/` RACI values, and non-negative integer counts; allows `punktlandung validate <file.html>` outside the repo root.
+- **Template JS test coverage (`test/punktlandung.test.mjs`):** Added a `node:vm` DOM harness test exercising role-gated bulk accept, `mootWhen` dimming, and `PKL1:` round-trip into `merge-answers.mjs`.
+- **Documentation honesty (`README.md`):** Pinned `npx` tag examples, added SharePoint/Outlook tenant testing caveats, and clearly documented fit vs. limits (self-declared roles, 1 file per respondent, author-supplied `openCount`).
+
 ## 2.3.1 (2026-11-26)
 
 Bug fixes from external QA:

@@ -19,11 +19,11 @@
 
 Coding agents (`Claude Code`, `Cursor`, `GitHub Spec Kit /clarify`) clarify **one developer at a time in a terminal**. That breaks down when half the answers belong to **Business, Legal, Operations, or Architecture** who never open a terminal or GitHub PR.
 
-- **Real before/after result:** In our German production case study ([`examples/steuerbox/`](examples/steuerbox/)), a feature spec had **22 open points + 5 unprovable statements** across **6 roles** — normally 3–5 alignment meetings. Turning them into one color-coded Punktlandung page showed Business immediately that only **9 of 40** sub-questions were theirs to decide (while 35 already carried a reasoned proposal).
+- **Anonymised production case (`examples/steuerbox/`):** A real feature spec had **22 open points + 5 unprovable statements** across **6 roles**. Turning them into one color-coded Punktlandung page organized them into 25 topics / 40 sub-questions and showed Business that only **9 of 40** decisions were theirs (while 35 already carried a reasoned proposal).
 - **Zero infrastructure:** One self-contained `.html` file, **0 npm dependencies**, no backend, no logins.
-- **Enterprise-safe return path:** Share via SharePoint / Intranet / Teams Files (recommended when Outlook filters `.html` attachments). Stakeholders click **"Save with answers"** *or* **"Copy answer code"** (`PKL1:...` — paste straight into an email, Teams, or Slack reply).
+- **Flexible sharing & return path:** Host on your Intranet/Teams Files or share directly (test `.html` hosting in your tenant first — SharePoint Online often downloads `.html` instead of rendering inline, and corporate mail filters often block `.html` attachments). Stakeholders click **"Save with answers"** *or* **"Copy answer code"** (`PKL1:...` — paste straight into an email, Teams, or Slack reply).
 
-> **When NOT to use Punktlandung:** If all decision-makers already review GitHub Pull Requests, use GitHub PRs or `/speckit.clarify` directly. Punktlandung bridges the gap when stakeholders live outside Git.
+> **Good fit vs. limits:** Use Punktlandung when **3+ parties** (some outside Git) need to close **~10–40 closed choices** on a **frozen spec**, with one facilitator reviewing the merge before handing it to an AI agent. **Do NOT use it** when everyone already reviews GitHub PRs, when there are fewer than ~8 questions (a 15-minute call is cheaper), for exploratory/contentious topics, or for formal compliance/audit sign-off (roles are self-declared with no auth, and each respondent should receive their own clean copy rather than forwarding a filled file). Note also that `openCount` is author-supplied and checked against `spec.json`, not parsed from prose.
 
 ---
 
@@ -63,17 +63,17 @@ Requires **Node.js 20+**:
 
 ```bash
 # 1. Scaffold spec.json (+ default context.json) from any plan.md / Spec Kit spec.md / OpenSpec proposal.md
-npx github:bor1e/punktlandung init path/to/plan.md --out-dir my-case
+npx github:bor1e/punktlandung#v2.3.2 init path/to/plan.md --out-dir my-case
 
 # 2. Refine options, proposals, and RACI (yourself or with your AI agent via AGENTS.md / SKILL.md),
 #    then compile one offline HTML file:
-npx github:bor1e/punktlandung build my-case/context.json my-case/spec.json -o my-case/open-points.html
+npx github:bor1e/punktlandung#v2.3.2 build my-case/context.json my-case/spec.json -o my-case/open-points.html
 
 # 3. Merge returned .html copies or pasted PKL1: reply codes into an AI-ready patch:
-npx github:bor1e/punktlandung merge --copilot-prompt my-case/open-points.html returned-biz.html replies.txt
+npx github:bor1e/punktlandung#v2.3.2 merge --copilot-prompt my-case/open-points.html returned-biz.html replies.txt
 ```
 
-*(Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
+*(Pin a release tag like `#v2.3.2` for reproducible runs. Inside a cloned repo, `node scripts/cli.mjs` or `node scripts/{init-case,build,merge-answers,validate}.mjs` runs identically.)*
 
 ---
 

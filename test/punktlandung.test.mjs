@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 import { validatePayload, extractJsonIsland } from '../scripts/validate.mjs';
 
@@ -90,6 +91,32 @@ describe('validatePayload invariants', () => {
     assert.ok(errs.some((e) => e.includes('placeholder text')));
     const { errs: allowed } = validatePayload({ context: baseCtx, spec: draft }, 'draft', { allowDraft: true });
     assert.deepEqual(allowed, []);
+  });
+
+  it('enforces schema rules: hex colors, non-empty string options, valid RACI letters, and non-negative openCount', () => {
+    const badColor = structuredClone(baseCtx);
+    badColor.parties[0].color = '#fff" onload="alert(1)';
+    assert.ok(validatePayload({ context: badColor, spec: baseSpec }, 'color').errs.some((e) => e.includes('hex')));
+
+    const badOpt = structuredClone(baseSpec);
+    badOpt.questions[0].options = [123, 'Valid'];
+    assert.ok(validatePayload({ context: baseCtx, spec: badOpt }, 'opt').errs.some((e) => e.includes('non-empty strings')));
+
+    const badRaci = structuredClone(baseSpec);
+    badRaci.questions[0].raci = { PO: 'AZ', PLAT: 'C' };
+    assert.ok(validatePayload({ context: baseCtx, spec: badRaci }, 'raci').errs.some((e) => e.includes('invalid RACI')));
+
+    const badCount = structuredClone(baseSpec);
+    badCount.spec.openCount = -1;
+    assert.ok(validatePayload({ context: baseCtx, spec: badCount }, 'count').errs.some((e) => e.includes('non-negative integer')));
+  });
+
+  it('validates a standalone HTML file outside repository root', () => {
+    const out = execFileSync('node', [
+      path.join(ROOT, 'scripts', 'validate.mjs'),
+      path.join(ROOT, 'examples', 'generic-plan', 'open-points.html')
+    ], { cwd: os.tmpdir(), encoding: 'utf8' });
+    assert.ok(out.includes('OK: validated'));
   });
 });
 
@@ -181,6 +208,30 @@ describe('build.mjs & init-case.mjs', () => {
       const spec = JSON.parse(fs.readFileSync(path.join(tmpDir, 'spec.json'), 'utf8'));
       assert.equal(spec.questions.length, 3);
       assert.ok(spec.questions.every((q) => !q.id.startsWith('US-') && !q.question.includes('accountant')));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to overwrite existing spec.json unless --force is passed, and extracts multiple markers per line', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-overwrite-'));
+    try {
+      const mdPath = path.join(tmpDir, 'spec.md');
+      fs.writeFileSync(mdPath, '# Multi Marker\n- [NEEDS CLARIFICATION: First?] and [NEEDS CLARIFICATION: Second?]\n');
+
+      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), mdPath, '--out-dir', tmpDir], { cwd: ROOT });
+      const spec = JSON.parse(fs.readFileSync(path.join(tmpDir, 'spec.json'), 'utf8'));
+      assert.equal(spec.questions.length, 2);
+
+      let overwriteBlocked = false;
+      try {
+        execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), mdPath, '--out-dir', tmpDir], { cwd: ROOT, stdio: 'pipe' });
+      } catch (err) {
+        overwriteBlocked = err.status === 1 && String(err.stderr).includes('already exists');
+      }
+      assert.ok(overwriteBlocked);
+
+      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), mdPath, '--out-dir', tmpDir, '--force'], { cwd: ROOT });
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -368,5 +419,127 @@ describe('merge-answers.mjs', () => {
   it('embeds PKL1 answer code in summaryText and mailto bodies', () => {
     assert.ok(genericHtml.includes('T.codeLabel'));
     assert.ok(genericHtml.includes('answerCode()'));
+  });
+
+  it('handles 76-col line-wrapped PKL1 codes and rejects corrupt tokens cleanly', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-wrap-'));
+    try {
+      const pklPayload = { v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'BIZ', name: 'Alice', a: { 'OQ-4': { o: '0', t: '', n: 'Wrapped reply' } } };
+      const rawCode = 'PKL1:' + Buffer.from(JSON.stringify(pklPayload), 'utf8').toString('base64url') + ':PKL';
+      const wrapped = rawCode.match(/.{1,76}/g).map((line) => `> ${line}`).join('\n');
+      const replyPath = path.join(tmpDir, 'wrapped.txt');
+      fs.writeFileSync(replyPath, `Forwarded reply:\n\n${wrapped}\n\nBest,\nAlice`);
+
+      const merged = JSON.parse(execFileSync('node', [
+        path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+        '--json',
+        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+        replyPath
+      ], { encoding: 'utf8' }));
+      assert.equal(merged.summary.resolved, 1);
+      assert.equal(merged.resolved[0].id, 'OQ-4');
+
+      let badExit = 0;
+      let badErr = '';
+      try {
+        execFileSync('node', [
+          path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+          path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+          '--code',
+          'PKL1:!!!not-valid-base64:PKL'
+        ], { encoding: 'utf8', stdio: 'pipe' });
+      } catch (err) {
+        badExit = err.status;
+        badErr = String(err.stderr);
+      }
+      assert.equal(badExit, 1);
+      assert.ok(badErr.includes('Invalid or truncated PKL1'));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('runs template JS end-to-end: blocks bulk-accept without role, applies PO proposals + mootWhen, and exports valid PKL1 code', () => {
+    const specData = extractJsonIsland(ssoHtml, 'spec-data');
+    const savedData = extractJsonIsland(ssoHtml, 'saved');
+    const scripts = [...ssoHtml.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+
+    const listeners = {};
+    const makeEl = (id) => {
+      const classes = new Set();
+      return {
+        id,
+        innerHTML: '',
+        textContent: id === 'spec-data' ? JSON.stringify(specData) : id === 'saved' ? JSON.stringify(savedData) : '',
+        value: '',
+        classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) },
+        addEventListener: (ev, fn) => { (listeners[`${id}:${ev}`] ||= []).push(fn); },
+        querySelector: () => null,
+        querySelectorAll: () => []
+      };
+    };
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+
+    const alerts = [];
+    let copied = '';
+    const storage = new Map();
+    const docListeners = {};
+    const context = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: (m) => alerts.push(m),
+      confirm: () => true,
+      location: { hash: '#fragen' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) },
+      navigator: { clipboard: { writeText: (s) => { copied = s; return Promise.resolve(); } } },
+      window: null,
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: (ev, fn) => { (docListeners[ev] ||= []).push(fn); },
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+    context.window = { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} };
+
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('Open Questions'));
+
+    // 1. Clicking Accept Proposals in "All roles" view alerts and sets 0 answers
+    const makeBtn = (attr, val = '') => ({ closest: (sel) => (sel === 'button' ? makeBtn(attr, val) : null), hasAttribute: (a) => a === attr, getAttribute: (a) => (a === attr ? val : null) });
+    listeners['main:click'].forEach((fn) => fn({ target: makeBtn('data-recs') }));
+    assert.equal(alerts.length, 1);
+    assert.ok(alerts[0].includes('select your role'));
+
+    // 2. Select PO role, click Accept Proposals -> only PO's SC-1 is answered, and copied PKL1 carries role='PO'
+    els.role.value = 'PO';
+    listeners['role:change'].forEach((fn) => fn({ target: els.role }));
+    listeners['main:click'].forEach((fn) => fn({ target: makeBtn('data-recs') }));
+    listeners['btnCopyCode:click'].forEach((fn) => fn.call(els.btnCopyCode, {}));
+
+    // Switching back to All roles confirms SC-2 renders dimmed as moot
+    els.role.value = '';
+    listeners['role:change'].forEach((fn) => fn({ target: els.role }));
+    assert.ok(els.main.innerHTML.includes('class="q moot" data-q="SC-2"'));
+
+    // 3. Copied PKL1:...:PKL resolves SC-1 and mutes SC-2 in merge-answers.mjs
+    assert.ok(copied.startsWith('PKL1:') && copied.endsWith(':PKL'));
+
+    const merged = JSON.parse(execFileSync('node', [
+      path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+      '--json',
+      path.join(ROOT, 'examples', 'speckit-sso', 'open-points.html'),
+      '--code',
+      copied
+    ], { encoding: 'utf8' }));
+    assert.equal(merged.summary.resolved, 1);
+    assert.equal(merged.resolved[0].id, 'SC-1');
+    assert.equal(merged.summary.moot, 1);
+    assert.equal(merged.moot[0].id, 'SC-2');
   });
 });

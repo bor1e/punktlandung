@@ -172,6 +172,7 @@ var T={
   qTitle:'Offene Fragen', qLead:'Jede Frage hat feste Antworten und „Sonstiges“. Der farbige Rand zeigt die Rolle, die entscheidet.',
   filterAll:'Alle', filterOpen:'Nur offene', filterNorec:'Nur ohne Vorschlag',
   acceptRecs:'Vorschläge für die gezeigten offenen Fragen übernehmen',
+  pickRoleFirst:'Bitte wählen Sie zuerst links oder oben eine Rolle, damit Sie nur Vorschläge übernehmen, die diese Rolle entscheidet.',
   noRecAlert:'Für die gezeigten offenen Fragen gibt es keinen Vorschlag.',
   acceptConfirm:function(n){return 'Für '+n+' offene Fragen den markierten Vorschlag als Antwort eintragen? Jede Antwort lässt sich danach ändern.'},
   noMatch:'Keine Frage für diese Auswahl.',
@@ -233,6 +234,7 @@ var T={
   qTitle:'Open Questions', qLead:'Each question offers closed options plus "Other". The left border color shows who decides.',
   filterAll:'All', filterOpen:'Open only', filterNorec:'No proposal only',
   acceptRecs:'Accept proposals for shown open questions',
+  pickRoleFirst:'Please select your role first so you only accept proposals that your role decides.',
   noRecAlert:'No proposals available for the currently shown open questions.',
   acceptConfirm:function(n){return 'Apply the proposed option to '+n+' open questions? You can still edit any answer afterward.'},
   noMatch:'No questions match this filter.',
@@ -354,7 +356,7 @@ function count(fn){return Q.filter(fn).length}
 function roleName(){return S.role?P[S.role].k:T.allRolesLower}
 
 /* ---------- Components ---------- */
-function pchip(p,outline,label){var c=P[p].c;return '<span class="pc'+(outline?' o':'')+'" style="'+(outline?'color:'+c+';border-color:'+c:'background:'+c+';border-color:'+c)+'">'+h(label||P[p].k)+'</span>'}
+function pchip(p,outline,label){var c=h(P[p].c);return '<span class="pc'+(outline?' o':'')+'" style="'+(outline?'color:'+c+';border-color:'+c:'background:'+c+';border-color:'+c)+'">'+h(label||P[p].k)+'</span>'}
 function whoHtml(q){
  var d=decider(q),R=ORDER.filter(function(p){return has(q,p,'R')&&p!==d});
  return T.colDecider+' '+pchip(d)+(R.length?' · '+T.colSupplier+' '+R.map(function(p){return pchip(p,true)}).join(' '):'');
@@ -370,7 +372,7 @@ function detailsHtml(d){
 }
 function qCard(q){
  var a=ans(q.id),moot=isMoot(q),k='ABCDE',s='';
- s+='<article class="q'+(moot?' moot':'')+'" data-q="'+h(q.id)+'" style="--pc:'+P[decider(q)].c+'">';
+ s+='<article class="q'+(moot?' moot':'')+'" data-q="'+h(q.id)+'" style="--pc:'+h(P[decider(q)].c)+'">';
  s+='<div class="qhead"><span class="sec">'+h(q.id)+'</span>'+statusChip(q)+(q.a&&KS&&KS.tag?'<span class="p ne">'+h(KS.tag)+'</span>':'')+(q.rec==null?'<span class="p no">'+(LANG==='de'?'ohne Vorschlag':'no proposal')+'</span>':'');
  s+='<span class="who">'+whoHtml(q)+'</span></div>';
  s+='<h3>'+h(q.t)+'</h3><p class="qq">'+h(q.q)+'</p>';
@@ -448,7 +450,7 @@ V.ueberblick=function(){
  s+='<div class="callout"><b>'+T.numbersTitle+'</b><p>'+T.numbersBody(SPEC_OPEN,SPEC_NN,ALLTP.length,Q.length,Q.length-norec.length,norec.length)+'</p></div>';
 
  s+='<h2>'+T.whoDecides+'</h2><p class="small">'+T.whoDecidesHint+'</p><div class="stack">';
- ORDER.forEach(function(p){var n=count(function(q){return has(q,p,'A')});if(n){s+='<i style="width:'+(100*n/Q.length)+'%;background:'+P[p].c+'" title="'+h(P[p].k)+': '+n+'"></i>'}});
+ ORDER.forEach(function(p){var n=count(function(q){return has(q,p,'A')});if(n){s+='<i style="width:'+(100*n/Q.length)+'%;background:'+h(P[p].c)+'" title="'+h(P[p].k)+': '+n+'"></i>'}});
  s+='</div><div class="legend">';
  ORDER.forEach(function(p){
   var a=count(function(q){return has(q,p,'A')}),r=count(function(q){return has(q,p,'R')&&!has(q,p,'A')}),o=count(function(q){return isOpen(q)&&has(q,p,'AR')});
@@ -499,7 +501,7 @@ UC.forEach(function(u){V[u.id]=function(){return ucView(u)}});
 V.fragen=function(){
  var s='<h1>'+T.qTitle+'</h1><p class="lead-in">'+T.qLead+'</p>';
  s+='<div class="tools"><button class="chip'+(F.p===''?' on':'')+'" data-p="">'+T.filterAll+' ('+Q.length+')</button>';
- ORDER.forEach(function(p){var n=count(function(q){return mine(q,p)});if(n){s+='<button class="chip'+(F.p===p?' on':'')+'" data-p="'+h(p)+'"><i style="background:'+P[p].c+'"></i>'+h(P[p].k)+' ('+n+')</button>'}});
+ ORDER.forEach(function(p){var n=count(function(q){return mine(q,p)});if(n){s+='<button class="chip'+(F.p===p?' on':'')+'" data-p="'+h(p)+'"><i style="background:'+h(P[p].c)+'"></i>'+h(P[p].k)+' ('+n+')</button>'}});
  s+='</div><div class="tools"><button class="chip'+(F.open?' on':'')+'" data-open>'+T.filterOpen+'</button><button class="chip'+(F.norec?' on':'')+'" data-norec>'+T.filterNorec+' ('+count(function(q){return q.rec==null})+')</button><button class="btn sec2" type="button" data-recs>'+T.acceptRecs+'</button></div>';
  var list=Q.filter(function(q){return mine(q,F.p)&&(!F.open||isOpen(q))&&(!F.norec||q.rec==null)});
  if(!list.length){s+='<p class="small">'+T.noMatch+'</p>'}
@@ -516,7 +518,7 @@ V.fragen=function(){
 V.raci=function(){
  var s='<h1>'+T.raciTitle+'</h1><p class="lead-in">'+T.raciLead+'</p>';
  if(CTX.assignmentNote){s+='<div class="banner info">ⓘ <span>'+h(CTX.assignmentNote)+'</span></div>'}
- s+='<div class="kpis">'+ORDER.map(function(p){var a=count(function(q){return has(q,p,'A')}),r=count(function(q){return has(q,p,'R')&&!has(q,p,'A')});return '<div class="kpi" style="border-top:4px solid '+P[p].c+'"><b>'+a+'</b><span>'+h(P[p].k)+' '+T.decides+' · '+T.supplies+' '+r+'</span></div>'}).join('')+'</div>';
+ s+='<div class="kpis">'+ORDER.map(function(p){var a=count(function(q){return has(q,p,'A')}),r=count(function(q){return has(q,p,'R')&&!has(q,p,'A')});return '<div class="kpi" style="border-top:4px solid '+h(P[p].c)+'"><b>'+a+'</b><span>'+h(P[p].k)+' '+T.decides+' · '+T.supplies+' '+r+'</span></div>'}).join('')+'</div>';
  s+='<p class="small">'+T.raciLegend+'</p>';
  s+='<div class="panel wide"><table class="raci"><tr><th style="width:118px">'+T.colId+'</th><th>'+T.colQ+'</th>'+ORDER.map(function(p){return '<th class="c">'+pchip(p,false,P[p].s)+'</th>'}).join('')+'<th style="width:120px">'+T.colState+'</th></tr>';
  GROUPS.forEach(function(g){
@@ -525,7 +527,7 @@ V.raci=function(){
   var hdr=g.badge?(g.badge+' · '+g.title):g.title;
   s+='<tr class="grp"><td colspan="'+(ORDER.length+3)+'">'+h(hdr)+'</td></tr>';
   gqs.forEach(function(q){
-   s+='<tr><td><a class="sec" href="#fragen:'+h(q.id)+'">'+h(q.id)+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td>'+ORDER.map(function(p){var v=q.r[p]||'',c=P[p].c;return '<td class="c">'+v.split('').map(function(x){return x==='A'?'<span class="r" style="background:'+c+';border-color:'+c+';color:#fff">A</span>':x==='R'?'<span class="r" style="color:'+c+';border-color:'+c+'">R</span>':'<span class="r '+x+'">'+x+'</span>'}).join(' ')+'</td>'}).join('')+'<td>'+statusChip(q)+'</td></tr>';
+   s+='<tr><td><a class="sec" href="#fragen:'+h(q.id)+'">'+h(q.id)+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td>'+ORDER.map(function(p){var v=q.r[p]||'',c=h(P[p].c);return '<td class="c">'+v.split('').map(function(x){return x==='A'?'<span class="r" style="background:'+c+';border-color:'+c+';color:#fff">A</span>':x==='R'?'<span class="r" style="color:'+c+';border-color:'+c+'">R</span>':'<span class="r '+x+'">'+x+'</span>'}).join(' ')+'</td>'}).join('')+'<td>'+statusChip(q)+'</td></tr>';
   });
  });
  s+='</table></div>';
@@ -566,7 +568,7 @@ function summaryText(){
 function answerCode(){
  var payload={v:1,id:SPEC.id||'spec',ver:SPEC_VER,role:S.role||'',name:S.name||'',a:stampedAnswers()};
  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
- return 'PKL1:'+b64;
+ return 'PKL1:'+b64+':PKL';
 }
 function summaryJson(){
  return JSON.stringify({
@@ -661,9 +663,10 @@ main.addEventListener('click',function(ev){
  if(t.hasAttribute('data-open')){F.open=!F.open;render();return}
  if(t.hasAttribute('data-norec')){F.norec=!F.norec;render();return}
  if(t.hasAttribute('data-recs')){
-  var list=Q.filter(function(q){return mine(q,F.p)&&isOpen(q)&&q.rec!=null&&(!F.norec)});
+  if(!F.p){alert(T.pickRoleFirst);return}
+  var list=Q.filter(function(q){return has(q,F.p,'A')&&isOpen(q)&&q.rec!=null&&(!F.norec)});
   if(!list.length){alert(T.noRecAlert);return}
-  if(confirm(T.acceptConfirm(list.length))){list.forEach(function(q){setAns(q.id,{o:String(q.rec)})});keepScroll()}
+  if(confirm(T.acceptConfirm(list.length))){if(!S.role){S.role=F.p;roleSel.value=F.p}list.forEach(function(q){setAns(q.id,{o:String(q.rec)})});keepScroll()}
   return;
  }
  if(t.hasAttribute('data-save')){saveHtml();return}

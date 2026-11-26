@@ -22,6 +22,10 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     return { errs, stats: null };
   }
 
+  if (ctx.lang !== undefined && ctx.lang !== 'de' && ctx.lang !== 'en') {
+    errs.push(`${label}: context.lang must be "de" or "en", found "${ctx.lang}"`);
+  }
+
   if (!Array.isArray(ctx.parties) || ctx.parties.length === 0) {
     errs.push(`${label}: context.parties must be a non-empty array`);
     return { errs, stats: null };
@@ -41,6 +45,9 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
       if (typeof p[field] !== 'string' || !p[field].trim()) {
         errs.push(`${label}: party "${p.id}" missing "${field}"`);
       }
+    }
+    if (typeof p.color === 'string' && !/^#[0-9a-fA-F]{3,8}$/.test(p.color)) {
+      errs.push(`${label}: party "${p.id}" color must be hex (#rgb..#rrggbbaa), found "${p.color}"`);
     }
   }
 
@@ -81,6 +88,8 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     }
     if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 4) {
       errs.push(`${label}: question "${q.id}" must have 2..4 options`);
+    } else if (q.options.some((o) => typeof o !== 'string' || !o.trim())) {
+      errs.push(`${label}: question "${q.id}" options must all be non-empty strings`);
     } else if (!allowDraft && (q.options.some(isPlaceholderText) || isPlaceholderText(q.reason) || isPlaceholderText(q.title))) {
       errs.push(`${label}: question "${q.id}" contains draft placeholder text — fill concrete choices or pass --draft to preview`);
     }
@@ -95,8 +104,8 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
           errs.push(`${label}: question "${q.id}" references unknown party "${pid}"`);
           continue;
         }
-        if (typeof role !== 'string') {
-          errs.push(`${label}: question "${q.id}" has non-string RACI value for "${pid}"`);
+        if (typeof role !== 'string' || !/^[ARCI]+$/.test(role)) {
+          errs.push(`${label}: question "${q.id}" has invalid RACI value "${role}" for "${pid}" (must match /^[ARCI]+$/)`);
           continue;
         }
         if (role.includes('A')) deciders++;
@@ -149,7 +158,13 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
 
   const openCount = spec.spec?.openCount;
   const unprovableCount = spec.spec?.unprovableCount || 0;
-  if (typeof openCount === 'number' && topicIds.size > openCount + unprovableCount) {
+  if (openCount !== undefined && (!Number.isInteger(openCount) || openCount < 0)) {
+    errs.push(`${label}: spec.openCount must be a non-negative integer`);
+  }
+  if (spec.spec?.unprovableCount !== undefined && (!Number.isInteger(spec.spec.unprovableCount) || spec.spec.unprovableCount < 0)) {
+    errs.push(`${label}: spec.unprovableCount must be a non-negative integer`);
+  }
+  if (Number.isInteger(openCount) && openCount >= 0 && topicIds.size > openCount + unprovableCount) {
     errs.push(`${label}: topic count ${topicIds.size} exceeds spec limit ${openCount + unprovableCount}`);
   }
 
@@ -175,72 +190,74 @@ export function extractJsonIsland(html, id) {
 function runCli() {
   const root = process.cwd();
   const errors = [];
-
-  const versionPath = path.join(root, 'VERSION');
-  const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
-  const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'template/overview.html'];
-  const schemaFiles = ['schema/context.schema.json', 'schema/spec.schema.json'];
-
-  let version = '';
-  if (!fs.existsSync(versionPath)) {
-    errors.push('Missing VERSION file');
-  } else {
-    version = fs.readFileSync(versionPath, 'utf8').trim();
-    if (!/^\d+\.\d+\.\d+$/.test(version)) {
-      errors.push(`VERSION must be SemVer (x.y.z), found "${version}"`);
-    }
-  }
-
-  if (!fs.existsSync(skillPath)) {
-    errors.push('Missing skills/open-points-overview/SKILL.md');
-  } else {
-    const skill = fs.readFileSync(skillPath, 'utf8');
-    const fm = skill.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    if (!fm) {
-      errors.push('SKILL.md missing YAML frontmatter');
-    } else {
-      const vm = fm[1].match(/^version:\s*(.+)$/m);
-      const skillVersion = vm ? vm[1].trim().replace(/^['"]|['"]$/g, '') : '';
-      if (!skillVersion) {
-        errors.push('SKILL.md frontmatter missing version');
-      } else if (version && skillVersion !== version) {
-        errors.push(`Version mismatch: VERSION is "${version}" but SKILL.md has "${skillVersion}"`);
-      }
-    }
-  }
-
-  for (const rel of requiredFiles) {
-    if (!fs.existsSync(path.join(root, rel))) {
-      errors.push(`Missing ${rel}`);
-    }
-  }
-
-  const pkgPath = path.join(root, 'package.json');
-  if (fs.existsSync(pkgPath)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-      if (version && pkg.version !== version) {
-        errors.push(`Version mismatch: VERSION is "${version}" but package.json has "${pkg.version}"`);
-      }
-    } catch (err) {
-      errors.push(`Invalid JSON in package.json: ${err.message}`);
-    }
-  }
-
-  for (const rel of schemaFiles) {
-    const p = path.join(root, rel);
-    if (!fs.existsSync(p)) {
-      errors.push(`Missing ${rel}`);
-    } else {
-      try {
-        JSON.parse(fs.readFileSync(p, 'utf8'));
-      } catch (err) {
-        errors.push(`Invalid JSON in ${rel}: ${err.message}`);
-      }
-    }
-  }
-
   const targets = process.argv.slice(2);
+  let version = '';
+
+  if (targets.length === 0) {
+    const versionPath = path.join(root, 'VERSION');
+    const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
+    const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'template/overview.html'];
+    const schemaFiles = ['schema/context.schema.json', 'schema/spec.schema.json'];
+
+    if (!fs.existsSync(versionPath)) {
+      errors.push('Missing VERSION file');
+    } else {
+      version = fs.readFileSync(versionPath, 'utf8').trim();
+      if (!/^\d+\.\d+\.\d+$/.test(version)) {
+        errors.push(`VERSION must be SemVer (x.y.z), found "${version}"`);
+      }
+    }
+
+    if (!fs.existsSync(skillPath)) {
+      errors.push('Missing skills/open-points-overview/SKILL.md');
+    } else {
+      const skill = fs.readFileSync(skillPath, 'utf8');
+      const fm = skill.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fm) {
+        errors.push('SKILL.md missing YAML frontmatter');
+      } else {
+        const vm = fm[1].match(/^version:\s*(.+)$/m);
+        const skillVersion = vm ? vm[1].trim().replace(/^['"]|['"]$/g, '') : '';
+        if (!skillVersion) {
+          errors.push('SKILL.md frontmatter missing version');
+        } else if (version && skillVersion !== version) {
+          errors.push(`Version mismatch: VERSION is "${version}" but SKILL.md has "${skillVersion}"`);
+        }
+      }
+    }
+
+    for (const rel of requiredFiles) {
+      if (!fs.existsSync(path.join(root, rel))) {
+        errors.push(`Missing ${rel}`);
+      }
+    }
+
+    const pkgPath = path.join(root, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        if (version && pkg.version !== version) {
+          errors.push(`Version mismatch: VERSION is "${version}" but package.json has "${pkg.version}"`);
+        }
+      } catch (err) {
+        errors.push(`Invalid JSON in package.json: ${err.message}`);
+      }
+    }
+
+    for (const rel of schemaFiles) {
+      const p = path.join(root, rel);
+      if (!fs.existsSync(p)) {
+        errors.push(`Missing ${rel}`);
+      } else {
+        try {
+          JSON.parse(fs.readFileSync(p, 'utf8'));
+        } catch (err) {
+          errors.push(`Invalid JSON in ${rel}: ${err.message}`);
+        }
+      }
+    }
+  }
+
   const htmlFiles = targets.length > 0 ? targets : [
     'example.html',
     'examples/generic-plan/open-points.html',
@@ -293,7 +310,8 @@ function runCli() {
     process.exit(1);
   }
 
-  console.log(`OK: version ${version} synced; validated ${summaries.join('; ')}.`);
+  const prefix = targets.length === 0 ? `version ${version} synced; ` : '';
+  console.log(`OK: ${prefix}validated ${summaries.join('; ')}.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
