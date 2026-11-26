@@ -714,4 +714,11 @@ describe('Spec Kit extension manifest', () => {
       assert.ok(content.length > 20, `${rel} must be non-empty`);
     }
   });
+
+  it('bump-version.sh passes bash syntax check and --dry-run cleanly', () => {
+    const scriptPath = path.join(ROOT, 'scripts', 'bump-version.sh');
+    execFileSync('bash', ['-n', scriptPath], { encoding: 'utf8' });
+    const dryRun = execFileSync('bash', [scriptPath, '--dry-run'], { encoding: 'utf8' }).trim();
+    assert.match(dryRun, /^\d+\.\d+\.\d+\s*->\s*\d+\.\d+\.\d+$/);
+  });
 });

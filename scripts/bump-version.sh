@@ -110,7 +110,7 @@ if (fs.existsSync("package.json")) {
 
 if (fs.existsSync("extension.yml")) {
   const ext = fs.readFileSync("extension.yml", "utf8");
-  const updatedExt = ext.replace(/^(\s*version:\s*)["']?\d+\.\d+\.\d+["']?\s*$/m, "$1\"" + next + "\"");
+  const updatedExt = ext.replace(/^(\s*version:\s*)["\x27]?\d+\.\d+\.\d+["\x27]?\s*$/m, "$1\"" + next + "\"");
   fs.writeFileSync("extension.yml", updatedExt, "utf8");
 }
 ' "$NEXT"
