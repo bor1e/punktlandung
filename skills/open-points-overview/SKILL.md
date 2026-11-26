@@ -1,7 +1,7 @@
 ---
 name: open-points-overview
 description: "Turns the open points of any plan.md, Spec Kit spec, or OpenSpec proposal into one self-contained HTML page on which each party selects answers and sends them back. Uses a reusable team context.json plus a per-plan spec.json. Triggers on: 'overview for the business department', 'open questions page', 'who decides what', 'RACI for the open points', 'make the spec ready for implementation'."
-version: 2.8.0
+version: 2.9.0
 ---
 
 # Open Points Overview (Two-Layer Model)
@@ -91,6 +91,7 @@ Trigger this protocol when:
 - **The page has more questions than the spec has open points**: valid only when split into sub-questions under a shared `topic` ID (`topics.size <= openCount + unprovableCount`). Otherwise remove or report as a new open point for the spec.
 - **A reader says two parties are the same**: merge them in `context.json` and take the highest RACI letter per question (`A > R > C > I`).
 - **No source says who decides**: propose an assignment, explain it in `context.assignmentNote`, and ask the user to confirm.
+- **Wrong decider assigned**: stakeholders can pick **"Not my decision → suggest role"** on any question card (`PKL1:` / `#saved` records `o: "r"` + `ra`). `merge-answers.mjs` keeps the item `open` (never resolving or triggering `mootWhen`) and raises a reassignment warning so you can update `raci` in `spec.json` and rebuild.
 - **The keystone question has no answer**: do not delete dependent questions; mark them with `keystoneDependent: true` / `mootWhen`.
 - **Corporate email blocks `.html` attachments**: share via SharePoint/Intranet link or have readers click **Copy reply text** / **Send via email**.
 - **An answer comes back**: answers update `plan.md` / the spec, not the generated HTML directly. Update the spec version and rebuild.

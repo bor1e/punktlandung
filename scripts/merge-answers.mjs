@@ -180,8 +180,12 @@ function formatOption(q, ans) {
   return `${'ABCDE'.charAt(idx)}: ${q.options?.[idx] ?? ans.o}`;
 }
 
+function isReassign(ans) {
+  return Boolean(ans && ans.o === 'r');
+}
+
 function isAnswered(ans) {
-  return Boolean(ans && ans.o !== '' && (ans.o !== 'x' || (ans.t || '').trim() !== ''));
+  return Boolean(ans && ans.o !== '' && ans.o !== 'r' && (ans.o !== 'x' || (ans.t || '').trim() !== ''));
 }
 
 function dedupeLatestPerRespondent(qId, entries) {
@@ -231,6 +235,22 @@ function evaluateQuestion(q) {
 
   for (const item of loaded) {
     const ans = item.state.a?.[q.id];
+    if (isReassign(ans)) {
+      rawEntries.push({
+        file: item.file,
+        respondent: item.state.name || '(anonymous)',
+        role: item.state.role || '',
+        at: item.at || '',
+        isDecider: item.state.role === decider,
+        isReassign: true,
+        suggestedRole: ans.ra || '',
+        optionIndex: 'r',
+        answer: '',
+        note: ans.n || '',
+        stale: false
+      });
+      continue;
+    }
     if (!isAnswered(ans)) continue;
     const stale = Boolean(ans.oh && ans.oh !== expectedHash);
     const text = stale ? `[STALE option #${ans.o}]` : formatOption(q, ans);
@@ -240,6 +260,8 @@ function evaluateQuestion(q) {
       role: item.state.role || '',
       at: item.at || '',
       isDecider: item.state.role === decider,
+      isReassign: false,
+      suggestedRole: '',
       optionIndex: ans.o,
       answer: text,
       note: ans.n || '',
@@ -247,9 +269,19 @@ function evaluateQuestion(q) {
     });
   }
 
-  const entries = dedupeLatestPerRespondent(q.id, rawEntries);
+  const allEntries = dedupeLatestPerRespondent(q.id, rawEntries);
+  const reassignments = allEntries.filter((e) => e.isReassign);
+  const entries = allEntries.filter((e) => !e.isReassign);
 
-  if (entries.length === 0) return { status: 'open', decider, entries };
+  for (const r of reassignments) {
+    const curName = partiesById.get(decider)?.name || decider;
+    const targetName = r.suggestedRole ? (partiesById.get(r.suggestedRole)?.name || r.suggestedRole) : 'unspecified role';
+    warnings.push(
+      `Reassignment requested for ${q.id} (current A=${curName}): ${r.respondent} [${r.role || 'no role'}] flagged "Not my decision" -> suggest ${targetName}${r.note ? ` (Note: ${r.note})` : ''}.`
+    );
+  }
+
+  if (entries.length === 0) return { status: 'open', decider, entries, reassignments };
 
   // Bug 2 fix: refuse stale answers whose options changed since reply was generated
   if (entries.some((e) => e.stale)) {
@@ -257,6 +289,7 @@ function evaluateQuestion(q) {
       status: 'conflict',
       decider,
       entries,
+      reassignments,
       reason: 'Options changed since reply was recorded (stale answer refused).'
     };
   }
@@ -267,17 +300,17 @@ function evaluateQuestion(q) {
   if (deciderEntries.length === 0) {
     const uniqueKeys = new Set(entries.map((e) => `${e.optionIndex}::${e.answer}`));
     if (uniqueKeys.size > 1) {
-      return { status: 'conflict', decider, entries, reason: 'Non-deciders disagreed before decider voted.' };
+      return { status: 'conflict', decider, entries, reassignments, reason: 'Non-deciders disagreed before decider voted.' };
     }
-    return { status: 'suggested', decider, entries };
+    return { status: 'suggested', decider, entries, reassignments };
   }
 
   const deciderKeys = new Set(deciderEntries.map((e) => `${e.optionIndex}::${e.answer}`));
   if (deciderKeys.size === 1) {
-    return { status: 'resolved', decider, chosen: deciderEntries[0], entries };
+    return { status: 'resolved', decider, chosen: deciderEntries[0], entries, reassignments };
   }
 
-  return { status: 'conflict', decider, entries, reason: 'Multiple decider answers conflict.' };
+  return { status: 'conflict', decider, entries, reassignments, reason: 'Multiple decider answers conflict.' };
 }
 
 // Pass 1: evaluate all branch-controlling questions (keystone + mootWhen targets)
@@ -324,6 +357,7 @@ const resolved = [];
 const suggested = [];
 const stillOpen = [];
 const moot = [];
+const reassignments = [];
 
 for (const q of questions) {
   const mr = mootReasonFor(q);
@@ -332,6 +366,21 @@ for (const q of questions) {
     continue;
   }
   const res = resolvedMap.get(q.id) || evaluateQuestion(q);
+  if (res.reassignments && res.reassignments.length > 0) {
+    reassignments.push({
+      id: q.id,
+      title: q.title,
+      ref: q.ref,
+      currentDecider: res.decider,
+      requests: res.reassignments.map((r) => ({
+        by: r.respondent,
+        role: r.role,
+        suggestedRole: r.suggestedRole,
+        note: r.note,
+        file: r.file
+      }))
+    });
+  }
   if (res.status === 'resolved') {
     resolved.push({
       id: q.id,
@@ -360,7 +409,13 @@ for (const q of questions) {
       entries: res.entries
     });
   } else {
-    stillOpen.push({ id: q.id, title: q.title, ref: q.ref, decider: res.decider });
+    stillOpen.push({
+      id: q.id,
+      title: q.title,
+      ref: q.ref,
+      decider: res.decider,
+      reassignments: res.reassignments || []
+    });
   }
 }
 
@@ -375,12 +430,14 @@ const output = {
     suggested: suggested.length,
     conflicts: conflicts.length,
     moot: moot.length,
-    open: stillOpen.length
+    open: stillOpen.length,
+    reassignments: reassignments.length
   },
   resolved,
   suggested,
   conflicts,
   moot,
+  reassignments,
   open: stillOpen
 };
 
@@ -427,7 +484,12 @@ if (asCopilot) {
   if (stillOpen.length > 0) {
     prompt.push('');
     prompt.push('## Still Open (Keep Marked as Unresolved)');
-    for (const o of stillOpen) prompt.push(`- \`${o.id}\` (Owner: ${partiesById.get(o.decider)?.name || o.decider}): ${o.title}`);
+    for (const o of stillOpen) {
+      const raTag = o.reassignments?.length
+        ? ` — reassignment suggested -> ${o.reassignments.map((r) => partiesById.get(r.suggestedRole)?.name || r.suggestedRole || 'unspecified').join(', ')}`
+        : '';
+      prompt.push(`- \`${o.id}\` (Owner: ${partiesById.get(o.decider)?.name || o.decider}): ${o.title}${raTag}`);
+    }
   }
   console.log(prompt.join('\n'));
   process.exit(conflicts.length > 0 ? 2 : 0);
@@ -489,7 +551,10 @@ if (moot.length > 0) {
 lines.push('## Still Open');
 if (stillOpen.length === 0) lines.push('- None (spec ready for release!).');
 for (const o of stillOpen) {
-  lines.push(`- **${o.id}** (${o.ref || '-'}, A=${partiesById.get(o.decider)?.name || o.decider}): ${o.title}`);
+  const raTag = o.reassignments?.length
+    ? ` — _reassignment requested -> ${o.reassignments.map((r) => partiesById.get(r.suggestedRole)?.name || r.suggestedRole || 'unspecified').join(', ')}_`
+    : '';
+  lines.push(`- **${o.id}** (${o.ref || '-'}, A=${partiesById.get(o.decider)?.name || o.decider}): ${o.title}${raTag}`);
 }
 
 console.log(lines.join('\n'));

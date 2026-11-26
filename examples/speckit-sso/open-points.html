@@ -87,6 +87,8 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .opt .k{font-weight:700;flex:none;width:14px}
 .opt .rec{margin-left:6px}
 .opt input[type=text]{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:14px}
+.opt.reassign{border-style:dashed;color:var(--fg-2)}
+.opt select{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:13.5px;background:#fff;color:var(--fg)}
 .note{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px;background:#fff}
 .why{margin:10px 0 0;font-size:13.5px;color:var(--fg-2)}
 .qfoot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-size:12.5px;color:var(--fg-3)}
@@ -182,9 +184,11 @@ var T={
   noRecAlert:'Für die gezeigten offenen Fragen gibt es keinen Vorschlag.',
   acceptConfirm:function(n){return 'Für '+n+' offene Fragen den markierten Vorschlag als Antwort eintragen? Jede Antwort lässt sich danach ändern.'},
   noMatch:'Keine Frage für diese Auswahl.',
-  stDone:'beantwortet', stOpen:'offen', stMoot:'entfällt',
+  stDone:'beantwortet', stOpen:'offen', stMoot:'entfällt', stReassign:'neu zuordnen',
   proposal:'Vorschlag', proposalPrefix:'Vorschlag ',
   other:'Sonstiges:', otherPh:'eigene Antwort', notePh:'Anmerkung (freiwillig)',
+  reassign:'Nicht meine Entscheidung →', reassignUnsure:'Unklar / siehe Anmerkung',
+  reassignTxt:function(who){return 'Nicht meine Entscheidung → Vorschlag: '+(who||'Unklar')},
   refLabel:'Betrifft', depLabel:'Hängt ab von', clearAns:'Antwort löschen',
   tpState:function(d,t){return d+' von '+t+' Teilfragen erledigt'},
   raciTitle:'Zuständigkeiten', raciLead:'Wer entscheidet welche Frage, und wer liefert die Antwort dazu?',
@@ -248,9 +252,11 @@ var T={
   noRecAlert:'No proposals available for the currently shown open questions.',
   acceptConfirm:function(n){return 'Apply the proposed option to '+n+' open questions? You can still edit any answer afterward.'},
   noMatch:'No questions match this filter.',
-  stDone:'answered', stOpen:'open', stMoot:'not applicable',
+  stDone:'answered', stOpen:'open', stMoot:'not applicable', stReassign:'reassign',
   proposal:'Proposal', proposalPrefix:'Proposal ',
   other:'Other:', otherPh:'your answer', notePh:'Note (optional)',
+  reassign:'Not my decision →', reassignUnsure:'Unsure / see note',
+  reassignTxt:function(who){return 'Not my decision → suggest: '+(who||'Unsure')},
   refLabel:'Affects', depLabel:'Depends on', clearAns:'Clear answer',
   tpState:function(d,t){return d+' of '+t+' sub-questions resolved'},
   raciTitle:'Responsibilities (RACI)', raciLead:'Who decides each question, and who supplies the answer?',
@@ -334,7 +340,7 @@ var droppedStale=0;
 if(S.a&&typeof S.a==='object'){
  Object.keys(S.a).forEach(function(id){
   var q=QI[id],a=S.a[id];
-  var ok=!!q&&(a&&a.oh?a.oh===optHash(q):loadedSpecHash===SPEC_HASH);
+  var ok=!!q&&((a&&a.o==='r')||(a&&a.oh?a.oh===optHash(q):loadedSpecHash===SPEC_HASH));
   if(!ok){delete S.a[id];droppedStale++}
  });
 }else{S.a={}}
@@ -355,12 +361,14 @@ function persist(){
  var ok=true;try{localStorage.setItem(KEY,JSON.stringify(payload))}catch(e){ok=false}
  var t=new Date(),hh=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
  var msg=ok?T.savedDraft(hh):T.noStorage;
- if(!S.role&&count(isDone)>0){msg+=' '+T.roleHint}
+ if(!S.role&&count(hasActivity)>0){msg+=' '+T.roleHint}
  document.getElementById('saveState').textContent=msg;
 }
 function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function ans(id){return S.a[id]||{o:'',t:'',n:''}}
-function isDone(q){var a=ans(q.id);return a.o!==''&&(a.o!=='x'||a.t.trim()!=='')}
+function ans(id){return S.a[id]||{o:'',t:'',n:'',ra:''}}
+function isReassign(q){return ans(q.id).o==='r'}
+function isDone(q){var a=ans(q.id);return a.o!==''&&a.o!=='r'&&(a.o!=='x'||a.t.trim()!=='')}
+function hasActivity(q){return isDone(q)||isReassign(q)}
 function mootRuleOf(q){
  if(q.mootWhen){
   var rules=Array.isArray(q.mootWhen)?q.mootWhen:[q.mootWhen];
@@ -379,7 +387,7 @@ function has(q,p,letters){var v=q.r[p]||'';for(var i=0;i<letters.length;i++){if(
 function mine(q,p){return p===''||has(q,p,'AR')}
 function decider(q){for(var i=0;i<ORDER.length;i++){if(has(q,ORDER[i],'A')){return ORDER[i]}}return ORDER[0]}
 function names(q,l){var n=ORDER.filter(function(p){return has(q,p,l)});if(!n.length&&l==='R'){n=[decider(q)]}return n.map(function(p){return P[p].k}).join(', ')}
-function answerText(q){var a=ans(q.id);if(a.o===''){return ''}if(a.o==='x'){return T.otherTxt+a.t}return 'ABCDE'.charAt(+a.o)+': '+q.o[+a.o]}
+function answerText(q){var a=ans(q.id);if(a.o===''){return ''}if(a.o==='r'){var tgt=a.ra&&P[a.ra]?P[a.ra].k:a.ra;return T.reassignTxt(tgt)}if(a.o==='x'){return T.otherTxt+a.t}return 'ABCDE'.charAt(+a.o)+': '+q.o[+a.o]}
 function count(fn){return Q.filter(fn).length}
 function roleName(){return S.role?P[S.role].k:T.allRolesLower}
 
@@ -413,6 +421,7 @@ function whoHtml(q){
 function statusChip(q){
  var mr=mootRuleOf(q);
  if(mr){return '<span class="p ne" data-st>'+h(mr)+'</span>'}
+ if(isReassign(q)){return '<span class="p warn" data-st>'+T.stReassign+'</span>'}
  return isDone(q)?'<span class="p ok" data-st>'+T.stDone+'</span>':'<span class="p warn" data-st>'+T.stOpen+'</span>';
 }
 function detailsHtml(d){
@@ -433,6 +442,10 @@ function qCard(q){
  });
  var ox=a.o==='x';
  s+='<label class="opt'+(ox?' sel':'')+'"><input type="radio" name="r-'+h(q.id)+'" value="x"'+(ox?' checked':'')+'><span>'+T.other+'</span><input type="text" data-f="t" value="'+h(a.t)+'" placeholder="'+h(T.otherPh)+'"></label>';
+ var or=a.o==='r',curDec=decider(q);
+ var rOpts='<option value="">'+h(T.reassignUnsure)+'</option>';
+ ORDER.forEach(function(p){if(!P[p].isPlatform&&p!==curDec){rOpts+='<option value="'+h(p)+'"'+(a.ra===p?' selected':'')+'>'+h(P[p].k)+'</option>'}});
+ s+='<label class="opt reassign'+(or?' sel':'')+'"><input type="radio" name="r-'+h(q.id)+'" value="r"'+(or?' checked':'')+'><span>'+h(T.reassign)+'</span><select data-f="ra">'+rOpts+'</select></label>';
  s+='</div>';
  s+='<input class="note" type="text" data-f="n" value="'+h(a.n)+'" placeholder="'+h(T.notePh)+'">';
  if(q.why){s+='<p class="why">'+(q.rec!=null?'<b>'+T.proposalPrefix+k.charAt(q.rec)+':</b> ':'')+h(q.why)+'</p>'}
@@ -618,6 +631,7 @@ function stampedAnswers(){
  Object.keys(S.a||{}).forEach(function(id){
   var a=S.a[id],q=QI[id];
   if(!a||a.o===''||!q){return}
+  if(a.o==='r'){out[id]={o:'r',ra:a.ra||'',n:a.n||'',oh:a.oh||optHash(q)};return}
   out[id]={o:a.o,t:a.t||'',n:a.n||'',oh:a.oh||optHash(q)};
  });
  return out;
@@ -626,12 +640,12 @@ function summaryText(){
  var d=new Date(),ds=('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
  var t=(SPEC.title||SPEC.brand)+': '+T.sumHeader+'\n'+T.sumBasis+': '+SPEC_FILE+', '+T.srcVersion+' '+SPEC_VER+'\n'+T.sumBy+': '+(S.name||T.sumNoName)+', '+ds+'\n';
  GROUPS.forEach(function(g){
-  var qs=Q.filter(function(q){return q.uc===g.id&&isDone(q)});if(!qs.length){return}
+  var qs=Q.filter(function(q){return q.uc===g.id&&hasActivity(q)});if(!qs.length){return}
   t+='\n'+(g.badge?(g.badge+' · '+g.title):g.title)+'\n';
   qs.forEach(function(q){var a=ans(q.id);t+='- '+q.id+' '+(q.tp?tpTitle(q.tp)+': ':'')+q.t+'\n  '+T.sumAnswer+': '+answerText(q)+(isMoot(q)?' ('+T.mootTag+')':'')+'\n'+(a.n?'  '+T.sumNote+': '+a.n+'\n':'')});
  });
  var open=Q.filter(isOpen);t+='\n'+T.sumStillOpen+' ('+open.length+'): '+open.map(function(q){return q.id}).join(', ')+'\n';
- if(count(isDone)>0){t+='\n'+T.codeLabel+':\n'+answerCode()+'\n'}
+ if(count(hasActivity)>0){t+='\n'+T.codeLabel+':\n'+answerCode()+'\n'}
  return t;
 }
 function answerCode(){
@@ -642,13 +656,13 @@ function answerCode(){
 function summaryJson(){
  return JSON.stringify({
   spec:SPEC_FILE,version:SPEC_VER,respondent:S.name||'',role:S.role||'',answeredAt:new Date().toISOString(),
-  answers:Q.filter(isDone).map(function(q){var a=ans(q.id);return {id:q.id,topic:q.tp||q.id,ref:q.fs,decider:decider(q),optionIndex:a.o,answer:answerText(q),note:a.n||'',moot:isMoot(q)}}),
+  answers:Q.filter(hasActivity).map(function(q){var a=ans(q.id);var rec={id:q.id,topic:q.tp||q.id,ref:q.fs,decider:decider(q),optionIndex:a.o,answer:answerText(q),note:a.n||'',moot:isMoot(q)};if(a.o==='r'){rec.reassignTo=a.ra||''}return rec}),
   openIds:Q.filter(isOpen).map(function(q){return q.id})
  },null,2);
 }
 
 V.antworten=function(){
- var done=Q.filter(isDone),s='<h1>'+T.ansTitle+'</h1><p class="lead-in">'+T.ansLead+'</p>';
+ var done=Q.filter(hasActivity),s='<h1>'+T.ansTitle+'</h1><p class="lead-in">'+T.ansLead+'</p>';
  s+='<div class="tools"><input class="name" type="text" id="name" placeholder="'+h(T.namePh)+'" value="'+h(S.name)+'"><button class="btn" type="button" data-save>'+T.saveBtn+'</button><button class="btn sec2" type="button" data-copy-code>'+T.copyCodeBtn+'</button><button class="btn sec2" type="button" data-copy>'+T.copyText+'</button><button class="btn sec2" type="button" data-copy-json>'+T.copyJson+'</button><button class="btn sec2" type="button" data-mailto>'+T.emailBtn+'</button><button class="link" type="button" data-reset>'+T.resetAll+'</button></div>';
  if(!S.role&&done.length){s+='<div class="banner">⚠ <span>'+h(T.roleHint)+'</span></div>'}
  if(!done.length){s+='<p class="small">'+T.noAnswers+'</p>'}
@@ -720,15 +734,28 @@ function fallbackCopy(str,btn){
 }
 
 main.addEventListener('change',function(ev){
- var card=ev.target.closest('.q');if(!card||ev.target.type!=='radio'){return}
- var id=card.getAttribute('data-q');setAns(id,{o:ev.target.value});
+ var card=ev.target.closest('.q');if(!card){return}
+ var id=card.getAttribute('data-q');
+ if(ev.target.tagName==='SELECT'&&ev.target.getAttribute('data-f')==='ra'){
+  var rdo=card.querySelector('input[value="r"]');if(rdo){rdo.checked=true}
+  setAns(id,{o:'r',ra:ev.target.value});
+  if(BRANCH_IDS[id]){keepScroll()}else{refreshCard(card,QI[id]);renderNav()}
+  return;
+ }
+ if(ev.target.type!=='radio'){return}
+ if(ev.target.value==='r'){
+  var sel=card.querySelector('select[data-f="ra"]');
+  setAns(id,{o:'r',ra:sel?sel.value:''});
+ }else{
+  setAns(id,{o:ev.target.value,ra:''});
+ }
  if(BRANCH_IDS[id]){keepScroll()}else{refreshCard(card,QI[id]);renderNav()}
 });
 main.addEventListener('input',function(ev){
  if(ev.target.id==='name'){S.name=ev.target.value;markDirty(true);persist();return}
- var card=ev.target.closest('.q'),f=ev.target.getAttribute('data-f');if(!card||!f){return}
+ var card=ev.target.closest('.q'),f=ev.target.getAttribute('data-f');if(!card||!f||f==='ra'){return}
  var id=card.getAttribute('data-q'),patch={};patch[f]=ev.target.value;
- if(f==='t'&&ev.target.value!==''){patch.o='x';card.querySelector('input[value="x"]').checked=true}
+ if(f==='t'&&ev.target.value!==''){patch.o='x';patch.ra='';card.querySelector('input[value="x"]').checked=true}
  setAns(id,patch);refreshCard(card,QI[id]);renderNav();
 });
 main.addEventListener('click',function(ev){
@@ -739,9 +766,9 @@ main.addEventListener('click',function(ev){
  if(t.hasAttribute('data-norec')){F.norec=!F.norec;render();return}
  if(t.hasAttribute('data-recs')){
   if(!F.p){alert(T.pickRoleFirst);return}
-  var list=Q.filter(function(q){return has(q,F.p,'A')&&isOpen(q)&&q.rec!=null&&(!F.norec)});
+  var list=Q.filter(function(q){return has(q,F.p,'A')&&isOpen(q)&&!isReassign(q)&&q.rec!=null&&(!F.norec)});
   if(!list.length){alert(T.noRecAlert);return}
-  if(confirm(T.acceptConfirm(list.length))){if(!S.role){S.role=F.p;roleSel.value=F.p}list.forEach(function(q){setAns(q.id,{o:String(q.rec)})});keepScroll()}
+  if(confirm(T.acceptConfirm(list.length))){if(!S.role){S.role=F.p;roleSel.value=F.p}list.forEach(function(q){setAns(q.id,{o:String(q.rec),ra:''})});keepScroll()}
   return;
  }
  if(t.hasAttribute('data-save')){saveHtml();return}
@@ -752,7 +779,7 @@ main.addEventListener('click',function(ev){
   var subj=encodeURIComponent((SPEC.brand||SPEC.title)+' - '+T.sumHeader);
   var full=summaryText(),sep='\n'+T.codeLabel+':',pos=full.lastIndexOf(sep);
   var head=pos>=0?full.slice(0,pos).trimEnd():full.trimEnd();
-  var footer=count(isDone)>0?'\n\n'+T.codeLabel+':\n'+answerCode():'';
+  var footer=count(hasActivity)>0?'\n\n'+T.codeLabel+':\n'+answerCode():'';
   if(head.length+footer.length>1750){head=head.slice(0,Math.max(0,1700-footer.length))+'\n... (summary truncated)'}
   window.location.href='mailto:?subject='+subj+'&body='+encodeURIComponent(head+footer);
   return;

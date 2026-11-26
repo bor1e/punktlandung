@@ -1026,6 +1026,120 @@ describe('merge-answers.mjs', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('records "Not my decision -> suggest role" in template, excludes it from bulk accept, and keeps it open with warnings in merge-answers', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const specData = structuredClone(extractJsonIsland(html, 'spec-data'));
+    const savedData = extractJsonIsland(html, 'saved');
+    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+
+    const listeners = {};
+    const makeEl = (id) => ({
+      id,
+      innerHTML: '',
+      textContent: id === 'spec-data' ? JSON.stringify(specData) : id === 'saved' ? JSON.stringify(savedData) : '',
+      value: '',
+      classList: { toggle: () => {}, contains: () => false },
+      addEventListener: (ev, fn) => { (listeners[`${id}:${ev}`] ||= []).push(fn); },
+      querySelector: () => null,
+      querySelectorAll: () => []
+    });
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+    let copied = '';
+    const storage = new Map();
+    const vmCtx = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: () => {},
+      confirm: () => true,
+      location: { hash: '#fragen' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) },
+      navigator: { clipboard: { writeText: (s) => { copied = s; return Promise.resolve(); } } },
+      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: () => {},
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+
+    vm.runInNewContext(appScript, vmCtx);
+    assert.ok(els.main.innerHTML.includes('Not my decision'), 'question cards render reassignment control');
+    assert.ok(!els.main.innerHTML.match(/<select data-f="ra">[\s\S]*?<option value="PLAT">/), 'platform team must not be selectable as target A');
+
+    // Select PO role and flag OQ-2 ("Not my decision -> suggest ARCH")
+    els.role.value = 'PO';
+    listeners['role:change'].forEach((fn) => fn({ target: els.role }));
+    const radioStub = { checked: false };
+    const cardStub = {
+      getAttribute: (a) => (a === 'data-q' ? 'OQ-2' : null),
+      querySelector: (sel) => (sel === 'input[value="r"]' ? radioStub : sel === '[data-st]' ? { outerHTML: '' } : null),
+      querySelectorAll: () => [],
+      closest: () => null,
+      classList: { toggle: () => {} }
+    };
+    const selectStub = {
+      tagName: 'SELECT',
+      type: 'select-one',
+      value: 'ARCH',
+      closest: (sel) => (sel === '.q' ? cardStub : null),
+      getAttribute: (a) => (a === 'data-f' ? 'ra' : null)
+    };
+    listeners['main:change'].forEach((fn) => fn({ target: selectStub }));
+    assert.equal(radioStub.checked, true);
+
+    // Bulk accept proposals for PO: OQ-2 must remain flagged 'r', not overwritten with proposal
+    const recBtn = { closest: (sel) => (sel === 'button' ? recBtn : null), hasAttribute: (a) => a === 'data-recs', getAttribute: () => null };
+    listeners['main:click'].forEach((fn) => fn({ target: recBtn }));
+
+    listeners['btnCopyCode:click'].forEach((fn) => fn.call(els.btnCopyCode, {}));
+    const decoded = JSON.parse(Buffer.from(copied.replace(/^PKL1:|:PKL$/g, ''), 'base64url').toString('utf8'));
+    assert.deepEqual(decoded.a['OQ-2'], { o: 'r', ra: 'ARCH', n: '', oh: decoded.a['OQ-2'].oh });
+
+    // Reassignment requests stay open in merge-answers.mjs (never resolve or mute) + emit warnings
+    const encode = (obj) => 'PKL1:' + Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url') + ':PKL';
+    const ksReassign = encode({
+      v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'ARCH', name: 'Eva Architect',
+      at: '2026-11-26T10:00:00.000Z',
+      a: { 'OQ-1': { o: 'r', ra: 'PO', n: 'Product owns sync vs async UX here' } }
+    });
+    const mergedReassign = JSON.parse(execFileSync('node', [
+      path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+      '--json',
+      path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+      '--code', ksReassign
+    ], { encoding: 'utf8' }));
+    assert.equal(mergedReassign.summary.resolved, 0);
+    assert.equal(mergedReassign.summary.moot, 0, 'keystone reassignment must not trigger mootWhen');
+    assert.equal(mergedReassign.summary.open, 4);
+    assert.equal(mergedReassign.summary.reassignments, 1);
+    assert.equal(mergedReassign.reassignments[0].requests[0].suggestedRole, 'PO');
+    assert.ok(mergedReassign.warnings.some((w) => w.includes('Reassignment requested for OQ-1') && w.includes('Product Owner')));
+
+    // Latest-wins: earlier decider vote is superseded by a newer reassignment request from the same decider
+    const earlyVote = encode({
+      v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'ARCH', name: 'Eva Architect',
+      at: '2026-11-26T09:00:00.000Z',
+      a: { 'OQ-1': { o: '1', t: '', n: 'Earlier async vote' } }
+    });
+    const mergedLatest = JSON.parse(execFileSync('node', [
+      path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+      '--json',
+      path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+      '--code', earlyVote,
+      '--code', ksReassign
+    ], { encoding: 'utf8' }));
+    assert.equal(mergedLatest.summary.resolved, 0);
+    assert.equal(mergedLatest.summary.moot, 0);
+    assert.equal(mergedLatest.summary.reassignments, 1);
+    assert.ok(mergedLatest.warnings.some((w) => w.includes('superseded')));
+  });
 });
 
 describe('Spec Kit extension manifest', () => {

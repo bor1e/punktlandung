@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "punktlandung"
   name: "Punktlandung — Multiplayer /clarify"
-  version: "2.8.0"
+  version: "2.9.0"
   description: "Turn open points from spec.md into one offline HTML page with RACI ownership for non-Git stakeholders, and merge replies back."
   category: "process"
   effect: "read-write"

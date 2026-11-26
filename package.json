@@ -1,6 +1,6 @@
 {
   "name": "punktlandung",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Multiplayer /clarify for non-Git stakeholders: turn open points in any plan.md, Spec Kit, or OpenSpec into one offline self-saving HTML page.",
   "type": "module",
   "license": "MIT",

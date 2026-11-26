@@ -2,6 +2,14 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.9.0 (2026-11-26)
+
+Explicit decider reassignment requests ("Not my decision → suggest role"):
+
+- **Question-card reassignment control (`template/overview.html`):** Added an explicit dashed `"Not my decision →"` option with a non-platform target-role dropdown (`select[data-f="ra"]`) on every question card. Records `{ o: "r", ra: "<partyId>" }` in `localStorage`, `#saved`, and `PKL1:` codes, keeps the question counted as open (`reassign` badge), survives option-hash changes on reload, and skips reassigned questions during bulk proposal accept.
+- **Non-resolving merge handling (`scripts/merge-answers.mjs`):** Treated `o === "r"` replies as non-resolving ownership flags (never resolving the question, triggering `mootWhen`, or exiting with conflict code `2`), surfaced them under `warnings`, top-level `reassignments[]`, `summary.reassignments`, and `## Still Open` annotations, and honored latest-wins timestamps between votes and reassignment corrections from the same respondent.
+- **Docs & tests (`skills/open-points-overview/SKILL.md`, `test/punktlandung.test.mjs`):** Documented the reassignment loop and added template DOM, `merge-answers.mjs`, and latest-wins regression tests.
+
 ## 2.8.0 (2026-11-26)
 
 Strict standard `init-case` contract and typed comparison cards with build-time image inlining:
