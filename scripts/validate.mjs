@@ -1,190 +1,250 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
+import { pathToFileURL } from 'node:url';
 
-const root = process.cwd();
-const errors = [];
+export function validatePayload(payload, label = 'spec-data') {
+  const errs = [];
+  const ctx = payload?.context;
+  const spec = payload?.spec;
 
-function fail(msg) {
-  errors.push(msg);
-}
-
-// 1. Validate repo files and version sync
-const versionPath = path.join(root, 'VERSION');
-const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
-const readmePath = path.join(root, 'README.md');
-const changelogPath = path.join(root, 'CHANGELOG.md');
-
-let version = '';
-if (!fs.existsSync(versionPath)) {
-  fail('Missing VERSION file');
-} else {
-  version = fs.readFileSync(versionPath, 'utf8').trim();
-  if (!/^\d+\.\d+\.\d+$/.test(version)) {
-    fail(`VERSION must be SemVer (x.y.z), found: "${version}"`);
+  if (!ctx || typeof ctx !== 'object') {
+    errs.push(`${label}: missing context object`);
+    return { errs, stats: null };
   }
-}
+  if (!spec || typeof spec !== 'object') {
+    errs.push(`${label}: missing spec object`);
+    return { errs, stats: null };
+  }
 
-if (!fs.existsSync(skillPath)) {
-  fail('Missing skills/open-points-overview/SKILL.md');
-} else {
-  const skill = fs.readFileSync(skillPath, 'utf8');
-  const match = skill.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) {
-    fail('SKILL.md missing YAML frontmatter');
-  } else {
-    const verMatch = match[1].match(/^version:\s*(.+)$/m);
-    const skillVersion = verMatch ? verMatch[1].trim().replace(/^['"]|['"]$/g, '') : '';
-    if (!skillVersion) {
-      fail('SKILL.md frontmatter missing version field');
-    } else if (version && skillVersion !== version) {
-      fail(`Version mismatch: VERSION is "${version}" but SKILL.md has "${skillVersion}"`);
+  if (!Array.isArray(ctx.parties) || ctx.parties.length === 0) {
+    errs.push(`${label}: context.parties must be a non-empty array`);
+    return { errs, stats: null };
+  }
+
+  const partyMap = new Map();
+  for (const p of ctx.parties) {
+    if (!p || typeof p.id !== 'string' || !p.id.trim()) {
+      errs.push(`${label}: party missing id`);
+      continue;
     }
-  }
-}
-
-if (!fs.existsSync(readmePath)) fail('Missing README.md');
-if (!fs.existsSync(changelogPath)) fail('Missing CHANGELOG.md');
-
-// 2. Validate HTML overview invariants
-const htmlArg = process.argv[2] || 'example.html';
-const htmlPath = path.resolve(root, htmlArg);
-
-let summary = '';
-if (!fs.existsSync(htmlPath)) {
-  fail(`Missing HTML file: ${htmlArg}`);
-} else {
-  const html = fs.readFileSync(htmlPath, 'utf8');
-
-  if (!/<script\s+type="application\/json"\s+id="saved">/.test(html)) {
-    fail(`${htmlArg}: missing <script type="application/json" id="saved">`);
-  }
-
-  if (/<script[^>]+src=["']https?:\/\//i.test(html)) {
-    fail(`${htmlArg}: external <script src="http..."> tag found`);
-  }
-  if (/<link[^>]+href=["']https?:\/\//i.test(html)) {
-    fail(`${htmlArg}: external <link href="http..."> tag found`);
-  }
-
-  const startMarker = "'use strict';";
-  const endMarker = '/* ---------- Zustand ---------- */';
-  const startIdx = html.indexOf(startMarker);
-  const endIdx = html.indexOf(endMarker);
-
-  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
-    fail(`${htmlArg}: could not locate JS data block between '${startMarker}' and '${endMarker}'`);
-  } else {
-    const dataBlock = html.slice(startIdx + startMarker.length, endIdx);
-    const sandbox = {};
-    try {
-      vm.runInNewContext(dataBlock, sandbox, { filename: htmlArg });
-    } catch (err) {
-      fail(`${htmlArg}: failed to evaluate data block: ${err.message}`);
+    if (partyMap.has(p.id)) {
+      errs.push(`${label}: duplicate party id "${p.id}"`);
     }
-
-    const { SPEC_OPEN, SPEC_NN, P, ORDER, Q, QI, ALLTP } = sandbox;
-
-    if (typeof SPEC_OPEN !== 'number' || typeof SPEC_NN !== 'number') {
-      fail(`${htmlArg}: SPEC_OPEN and SPEC_NN must be numbers`);
-    } else if (!Array.isArray(ALLTP)) {
-      fail(`${htmlArg}: ALLTP must be an array`);
-    } else {
-      const limit = SPEC_OPEN + SPEC_NN;
-      if (ALLTP.length > limit) {
-        fail(`${htmlArg}: topic count ${ALLTP.length} exceeds spec limit ${limit} (${SPEC_OPEN} + ${SPEC_NN})`);
+    partyMap.set(p.id, p);
+    for (const field of ['name', 'color', 'role', 'job']) {
+      if (typeof p[field] !== 'string' || !p[field].trim()) {
+        errs.push(`${label}: party "${p.id}" missing "${field}"`);
       }
     }
+  }
 
-    if (!P || typeof P !== 'object' || !Array.isArray(ORDER) || !Array.isArray(Q) || !QI) {
-      fail(`${htmlArg}: missing P, ORDER, Q, or QI in data block`);
+  if (!Array.isArray(spec.groups) || spec.groups.length === 0) {
+    errs.push(`${label}: spec.groups must be a non-empty array`);
+  }
+  const groupIds = new Set((spec.groups || []).map((g) => g?.id).filter(Boolean));
+
+  if (!Array.isArray(spec.questions) || spec.questions.length === 0) {
+    errs.push(`${label}: spec.questions must be a non-empty array`);
+    return { errs, stats: null };
+  }
+
+  const seenQ = new Set();
+  const topicIds = new Set();
+  let proposalCount = 0;
+  let factCount = 0;
+
+  for (const q of spec.questions) {
+    if (!q || typeof q.id !== 'string' || !q.id.trim()) {
+      errs.push(`${label}: question missing valid id`);
+      continue;
+    }
+    if (seenQ.has(q.id)) {
+      errs.push(`${label}: duplicate question id "${q.id}"`);
+    }
+    seenQ.add(q.id);
+    topicIds.add(q.topic || q.id);
+
+    if (typeof q.title !== 'string' || !q.title.trim()) {
+      errs.push(`${label}: question "${q.id}" missing title`);
+    }
+    if (typeof q.question !== 'string' || !q.question.trim()) {
+      errs.push(`${label}: question "${q.id}" missing question text`);
+    }
+    if (!groupIds.has(q.group)) {
+      errs.push(`${label}: question "${q.id}" references unknown group "${q.group}"`);
+    }
+    if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 4) {
+      errs.push(`${label}: question "${q.id}" must have 2..4 options`);
+    }
+
+    if (!q.raci || typeof q.raci !== 'object') {
+      errs.push(`${label}: question "${q.id}" missing raci map`);
     } else {
-      const seenIds = new Set();
-      let proposalCount = 0;
-      let factCount = 0;
-
-      for (const q of Q) {
-        if (!q || typeof q.id !== 'string' || !q.id.trim()) {
-          fail(`${htmlArg}: question missing valid id`);
+      let deciders = 0;
+      for (const [pid, role] of Object.entries(q.raci)) {
+        const party = partyMap.get(pid);
+        if (!party) {
+          errs.push(`${label}: question "${q.id}" references unknown party "${pid}"`);
           continue;
         }
-        if (seenIds.has(q.id)) {
-          fail(`${htmlArg}: duplicate question id "${q.id}"`);
+        if (typeof role !== 'string') {
+          errs.push(`${label}: question "${q.id}" has non-string RACI value for "${pid}"`);
+          continue;
         }
-        seenIds.add(q.id);
-
-        if (typeof q.t !== 'string' || !q.t.trim()) {
-          fail(`${htmlArg}: question "${q.id}" missing non-empty title (t)`);
-        }
-        if (typeof q.q !== 'string' || !q.q.trim()) {
-          fail(`${htmlArg}: question "${q.id}" missing non-empty question text (q)`);
-        }
-        if (!Array.isArray(q.o) || q.o.length < 2 || q.o.length > 4) {
-          fail(`${htmlArg}: question "${q.id}" must have 2..4 options, found ${Array.isArray(q.o) ? q.o.length : 'non-array'}`);
-        }
-
-        if (!q.r || typeof q.r !== 'object') {
-          fail(`${htmlArg}: question "${q.id}" missing RACI map (r)`);
-        } else {
-          let deciders = 0;
-          for (const [party, role] of Object.entries(q.r)) {
-            if (!Object.hasOwn(P, party) || !ORDER.includes(party)) {
-              fail(`${htmlArg}: question "${q.id}" references unknown party "${party}"`);
-            }
-            if (typeof role !== 'string') {
-              fail(`${htmlArg}: question "${q.id}" has non-string RACI value for "${party}"`);
-              continue;
-            }
-            if (role.includes('A')) {
-              deciders++;
-            }
-            if (party === 'PLAT' && (role.includes('A') || role.includes('R'))) {
-              fail(`${htmlArg}: platform team PLAT must not have A or R on "${q.id}"`);
-            }
-          }
-          if (deciders !== 1) {
-            fail(`${htmlArg}: question "${q.id}" must have exactly 1 deciding party (A), found ${deciders}`);
-          }
-        }
-
-        if (q.rec !== null && q.rec !== undefined) {
-          proposalCount++;
-          if (!Number.isInteger(q.rec) || q.rec < 0 || q.rec >= (q.o ? q.o.length : 0)) {
-            fail(`${htmlArg}: question "${q.id}" has out-of-range rec=${q.rec}`);
-          }
-          if (typeof q.why !== 'string' || !q.why.trim()) {
-            fail(`${htmlArg}: question "${q.id}" has proposal rec=${q.rec} but empty why`);
-          }
-        } else {
-          factCount++;
-        }
-
-        if (q.dep !== undefined) {
-          if (!Array.isArray(q.dep)) {
-            fail(`${htmlArg}: question "${q.id}" dep must be an array`);
-          } else {
-            for (const depId of q.dep) {
-              if (!Object.hasOwn(QI, depId)) {
-                fail(`${htmlArg}: question "${q.id}" depends on unknown question "${depId}"`);
-              }
-            }
-          }
+        if (role.includes('A')) deciders++;
+        if (party.isPlatform && (role.includes('A') || role.includes('R'))) {
+          errs.push(`${label}: platform party "${pid}" must not have A or R on "${q.id}"`);
         }
       }
+      if (deciders !== 1) {
+        errs.push(`${label}: question "${q.id}" must have exactly 1 deciding party (A), found ${deciders}`);
+      }
+    }
 
-      if (errors.length === 0) {
-        summary = `OK: version ${version} synced; ${htmlArg} validated (${ALLTP.length} topics <= ${SPEC_OPEN + SPEC_NN} limit, ${Q.length} questions, ${proposalCount} with proposal, ${factCount} fact questions, all RACI/dep checks passed).`;
+    if (q.proposal !== null && q.proposal !== undefined) {
+      proposalCount++;
+      if (!Number.isInteger(q.proposal) || q.proposal < 0 || q.proposal >= (q.options?.length || 0)) {
+        errs.push(`${label}: question "${q.id}" has out-of-range proposal=${q.proposal}`);
+      }
+      if (typeof q.reason !== 'string' || !q.reason.trim()) {
+        errs.push(`${label}: question "${q.id}" has proposal=${q.proposal} without reason`);
+      }
+    } else {
+      factCount++;
+    }
+  }
+
+  for (const q of spec.questions) {
+    for (const depId of q.dependsOn || []) {
+      if (!seenQ.has(depId)) {
+        errs.push(`${label}: question "${q.id}" depends on unknown question "${depId}"`);
       }
     }
   }
-}
 
-if (errors.length > 0) {
-  for (const err of errors) {
-    console.error(`ERROR: ${err}`);
+  if (spec.keystone?.id && !seenQ.has(spec.keystone.id)) {
+    errs.push(`${label}: keystone "${spec.keystone.id}" not found in spec.questions`);
   }
-  process.exit(1);
+
+  const openCount = spec.spec?.openCount;
+  const unprovableCount = spec.spec?.unprovableCount || 0;
+  if (typeof openCount === 'number' && topicIds.size > openCount + unprovableCount) {
+    errs.push(`${label}: topic count ${topicIds.size} exceeds spec limit ${openCount + unprovableCount}`);
+  }
+
+  return {
+    errs,
+    stats: {
+      topics: topicIds.size,
+      limit: typeof openCount === 'number' ? openCount + unprovableCount : null,
+      questions: spec.questions.length,
+      proposals: proposalCount,
+      facts: factCount
+    }
+  };
 }
 
-console.log(summary);
+export function extractJsonIsland(html, id) {
+  const re = new RegExp(`<script\\s+type=["']application/json["']\\s+id=["']${id}["']>([\\s\\S]*?)<\\/script>`);
+  const m = html.match(re);
+  if (!m) return null;
+  return JSON.parse(m[1]);
+}
+
+function runCli() {
+  const root = process.cwd();
+  const errors = [];
+
+  const versionPath = path.join(root, 'VERSION');
+  const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
+  const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'template/overview.html'];
+
+  let version = '';
+  if (!fs.existsSync(versionPath)) {
+    errors.push('Missing VERSION file');
+  } else {
+    version = fs.readFileSync(versionPath, 'utf8').trim();
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      errors.push(`VERSION must be SemVer (x.y.z), found "${version}"`);
+    }
+  }
+
+  if (!fs.existsSync(skillPath)) {
+    errors.push('Missing skills/open-points-overview/SKILL.md');
+  } else {
+    const skill = fs.readFileSync(skillPath, 'utf8');
+    const fm = skill.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fm) {
+      errors.push('SKILL.md missing YAML frontmatter');
+    } else {
+      const vm = fm[1].match(/^version:\s*(.+)$/m);
+      const skillVersion = vm ? vm[1].trim().replace(/^['"]|['"]$/g, '') : '';
+      if (!skillVersion) {
+        errors.push('SKILL.md frontmatter missing version');
+      } else if (version && skillVersion !== version) {
+        errors.push(`Version mismatch: VERSION is "${version}" but SKILL.md has "${skillVersion}"`);
+      }
+    }
+  }
+
+  for (const rel of requiredFiles) {
+    if (!fs.existsSync(path.join(root, rel))) {
+      errors.push(`Missing ${rel}`);
+    }
+  }
+
+  const targets = process.argv.slice(2);
+  const htmlFiles = targets.length > 0 ? targets : ['example.html', 'examples/generic-plan/open-points.html'];
+  const summaries = [];
+
+  for (const rel of htmlFiles) {
+    const full = path.resolve(root, rel);
+    if (!fs.existsSync(full)) {
+      errors.push(`Missing HTML file: ${rel}`);
+      continue;
+    }
+    const html = fs.readFileSync(full, 'utf8');
+    if (/<script[^>]+src=["']https?:\/\//i.test(html)) {
+      errors.push(`${rel}: external <script src="http..."> tag found`);
+    }
+    if (/<link[^>]+href=["']https?:\/\//i.test(html)) {
+      errors.push(`${rel}: external <link href="http..."> tag found`);
+    }
+    let specData;
+    try {
+      specData = extractJsonIsland(html, 'spec-data');
+    } catch (err) {
+      errors.push(`${rel}: invalid #spec-data JSON (${err.message})`);
+      continue;
+    }
+    if (!specData) {
+      errors.push(`${rel}: missing <script type="application/json" id="spec-data">`);
+      continue;
+    }
+    try {
+      const saved = extractJsonIsland(html, 'saved');
+      if (saved === null) errors.push(`${rel}: missing <script type="application/json" id="saved">`);
+    } catch (err) {
+      errors.push(`${rel}: invalid #saved JSON (${err.message})`);
+    }
+
+    const { errs, stats } = validatePayload(specData, rel);
+    errors.push(...errs);
+    if (errs.length === 0 && stats) {
+      const lim = stats.limit !== null ? `${stats.topics}<=${stats.limit}` : `${stats.topics}`;
+      summaries.push(`${rel} (${lim} topics, ${stats.questions} Qs, ${stats.proposals} proposals, ${stats.facts} facts)`);
+    }
+  }
+
+  if (errors.length > 0) {
+    for (const e of errors) console.error(`ERROR: ${e}`);
+    process.exit(1);
+  }
+
+  console.log(`OK: version ${version} synced; validated ${summaries.join('; ')}.`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  runCli();
+}

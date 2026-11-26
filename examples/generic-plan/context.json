@@ -1,0 +1,47 @@
+{
+  "lang": "en",
+  "org": "Product Delivery Team",
+  "assignmentNote": "RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.",
+  "constraints": [
+    "An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.",
+    "Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."
+  ],
+  "parties": [
+    {
+      "id": "BIZ",
+      "name": "Business",
+      "short": "Biz",
+      "color": "#7b3fb5",
+      "role": "Business & Compliance Stakeholders",
+      "job": "Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.",
+      "isPlatform": false
+    },
+    {
+      "id": "PO",
+      "name": "Product Owner",
+      "short": "PO",
+      "color": "#1c6dd0",
+      "role": "Product Management",
+      "job": "Decides UX trade-offs, defaults, and acceptance criteria where proposals exist.",
+      "isPlatform": false
+    },
+    {
+      "id": "ARCH",
+      "name": "Architect",
+      "short": "Arch",
+      "color": "#0e7c86",
+      "role": "Software Architect",
+      "job": "Decides execution architecture, API contracts, and performance bounds.",
+      "isPlatform": false
+    },
+    {
+      "id": "PLAT",
+      "name": "Platform Team",
+      "short": "Plat",
+      "color": "#5c7a1f",
+      "role": "Central Platform & Infrastructure",
+      "job": "Answers no product questions; consulted only if background workers, queues, or deployment config change.",
+      "isPlatform": true
+    }
+  ]
+}

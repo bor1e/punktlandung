@@ -1,0 +1,74 @@
+{
+  "lang": "de",
+  "org": "Anonymisiertes Beispiel",
+  "assignmentNote": "Die Zuordnung ist ein Vorschlag. Keine Quelle legt fest, wer welche Frage entscheidet. Fachliche Anforderungen, Systemführung und Steuerbox-Rollout sind hier eine Rolle: Fachbereich.",
+  "constraints": [
+    "Eine KI setzt die Spezifikation nach Freigabe um – offene Lücken müssen vorab geschlossen sein.",
+    "Das Plattform-Team erhält keine fachlichen Anforderungsfragen (nur Einbindung bei Build- oder Deployment-Änderungen)."
+  ],
+  "parties": [
+    {
+      "id": "FB",
+      "name": "Fachbereich",
+      "short": "Fachbereich",
+      "color": "#7b3fb5",
+      "role": "Fachseite: Fachliche Anforderungen, Systemführung Datenübermittlung, Steuerbox-Rollout",
+      "job": "Entscheidet, was der Anlagenbetreiber sieht und versteht. Liefert die Fakten zu Daten und Steuergruppen: Format, Stufen, Gründe, Takt, Namen.",
+      "isPlatform": false
+    },
+    {
+      "id": "PO",
+      "name": "Product Owner",
+      "short": "PO",
+      "color": "#1c6dd0",
+      "role": "Product Owner",
+      "job": "Entscheidet Umfang und Bedienverhalten, wo ein Vorschlag vorliegt und kein fachlicher Inhalt betroffen ist.",
+      "isPlatform": false
+    },
+    {
+      "id": "ARCH",
+      "name": "Architekt",
+      "short": "Architekt",
+      "color": "#0e7c86",
+      "role": "IT-Architekt",
+      "job": "Entscheidet Schnittstellen, Datenwege und Datenmodell.",
+      "isPlatform": false
+    },
+    {
+      "id": "DEV",
+      "name": "Umsetzung",
+      "short": "Umsetzung",
+      "color": "#c2307a",
+      "role": "Umsetzung der Anwendung (Frontend und Backend)",
+      "job": "Liefert den Stand des gebauten Verhaltens aus dem Code und die Machbarkeit. Entscheidet keine Frage.",
+      "isPlatform": false
+    },
+    {
+      "id": "MW",
+      "name": "Middleware",
+      "short": "Middleware",
+      "color": "#8d5a2b",
+      "role": "Middleware",
+      "job": "Liefert die Abbildungsregeln von der CSV auf den Aufruf an das Backend.",
+      "isPlatform": false
+    },
+    {
+      "id": "UX",
+      "name": "UX / Design",
+      "short": "UX",
+      "color": "#5f6b7a",
+      "role": "Design (Entwurf)",
+      "job": "Arbeitet Platzierung und Darstellung aus, wenn die Entscheidung gefallen ist.",
+      "isPlatform": false
+    },
+    {
+      "id": "PLAT",
+      "name": "Plattform-Team",
+      "short": "Plattform",
+      "color": "#5c7a1f",
+      "role": "Zentrales Plattform-Team (Pipeline, Build und Deployment)",
+      "job": "Entscheidet und beantwortet keine Frage dieses Dokuments. Hat im Pull Request das letzte Wort, sobald sich die Build- oder Deployment-Konfiguration ändert.",
+      "isPlatform": true
+    }
+  ]
+}

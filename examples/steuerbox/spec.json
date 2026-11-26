@@ -1,0 +1,1396 @@
+{
+  "id": "steuerbox-uebersicht",
+  "logo": "SB",
+  "brand": "Steuerbox",
+  "subtitle": "Anonymisiertes Beispiel",
+  "title": "Anzeige von Steuerhandlungen: Erweiterung um Steuerboxen",
+  "lead": "Die Anwendung auf der Website zeigt heute die Steuerhandlungen der Funkrundsteuerempfänger (FRE). Mit dem Rollout der Steuerboxen soll sie auch deren Steuerhandlungen zeigen. Diese Seite fasst zusammen, was dafür feststeht, und sammelt die Antworten auf das, was noch offen ist.",
+  "spec": {
+    "file": "feature-set-steuerbox.md",
+    "version": "0.2.0",
+    "date": "26.11.2026",
+    "openCount": 22,
+    "unprovableCount": 5
+  },
+  "sourcesBadges": [
+    {
+      "label": "Epic",
+      "value": "Epic, Teil 2"
+    },
+    {
+      "label": "Szenarien nach",
+      "value": "Entwurf A"
+    }
+  ],
+  "anonBanner": "Anonymisiertes Beispiel. Namen, Orte, Kennungen und Oberflächentexte sind ersetzt; Aufbau und Fragestellung sind erhalten.",
+  "keystone": {
+    "id": "new-1",
+    "mootOption": "1",
+    "tag": "nur Entwurf A",
+    "mootStatus": "entfällt bei Entwurf B",
+    "openBanner": "Zuerst zu klären: Welcher Entwurf gilt? Es gibt zwei Entwürfe mit verschiedenem Konzept. Von der Antwort hängt ab, welche der übrigen Fragen sich überhaupt stellen.",
+    "mootBanner": "Gewählt ist Entwurf B (SR-ID). Use Case 1 und alle Fragen mit der Marke „nur Entwurf A“ entfallen. Die Szenarien dieser Seite beschreiben Entwurf A und müssen dann neu geschrieben werden.",
+    "mootGroups": [
+      "uc1"
+    ],
+    "mootGroupBanner": "Bei Entwurf B (SR-ID) entfällt dieser Use Case."
+  },
+  "groups": [
+    {
+      "id": "g",
+      "title": "Grundsatz"
+    },
+    {
+      "id": "uc1",
+      "badge": "UC1",
+      "title": "Steuergruppe über die Adresse ermitteln",
+      "actor": "Anlagenbetreiber",
+      "ref": "FS-01, FS-05",
+      "goal": "Ein Anlagenbetreiber ermittelt über PLZ, Ort und Ortsteil seine Steuergruppe.",
+      "src": "Epic, Zielsetzung und Teil 1",
+      "scenarios": [
+        [
+          "FS-01.1",
+          "b",
+          "Zur PLZ 12345 gibt es Adressen im Adressverzeichnis",
+          "Die Anwendung fragt die Adressen zur PLZ ab",
+          "Sie erhält die Liste der Orte und Ortsteile dieser PLZ"
+        ],
+        [
+          "FS-01.3",
+          "b",
+          "PLZ 12345, Ort und Ortsteil sind gefüllt",
+          "Klick auf den Button zum Ermitteln",
+          "Die Anwendung fragt die Steuergruppe mit PLZ, Ort und Ortsteil an"
+        ],
+        [
+          "FS-01.4",
+          "b",
+          "Die Adressliste enthält genau einen Eintrag mit dieser PLZ, diesem Ort und diesem Ortsteil",
+          "Anfrage der Steuergruppe",
+          "Das Ergebnis ist die Steuergruppe dieses Eintrags"
+        ],
+        [
+          "FS-05.1",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Überschriften „Ermittlung der Steuergruppe“ und „Letzte Regelungen“"
+        ],
+        [
+          "FS-05.2-a",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Einleitungstext laut Entwurf"
+        ],
+        [
+          "FS-05.2-b",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Button „Steuergruppe ermitteln“"
+        ],
+        [
+          "FS-05.3",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Feldbeschriftungen „PLZ *“, „Ort *“, „Ortsteil *“"
+        ]
+      ]
+    },
+    {
+      "id": "uc2",
+      "badge": "UC2",
+      "title": "Regelungen einsehen",
+      "actor": "Anlagenbetreiber",
+      "ref": "FS-01, FS-03, FS-05",
+      "goal": "Ein Anlagenbetreiber sieht die Steuerhandlungen in einer Tabelle und je Steuerhandlung die Steuereinrichtung (FRE oder Steuerbox).",
+      "src": "Epic, Zielsetzung und Teil 2; Entwurf A",
+      "scenarios": [
+        [
+          "FS-01.5",
+          "b",
+          "Es sind Steuerhandlungen gespeichert",
+          "Abruf der Steuerhandlungen",
+          "Die Antwort enthält alle gespeicherten Einträge"
+        ],
+        [
+          "FS-01.6",
+          "b",
+          "Seite wird geladen",
+          "Die Seite wird geöffnet",
+          "Die Anwendung ruft die Steuerhandlungen einmal ab; je Eintrag eine Tabellenzeile"
+        ],
+        [
+          "FS-05.4-b",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Spalten „Datum“, „Uhrzeit“, „Steuergruppe“, „Steuereinrichtung“, „Status“, „Leistung in %“, „Grund“"
+        ],
+        [
+          "FS-01.7",
+          "b",
+          "Eintrag vom 09.07.2025, 16:32:02",
+          "Tabelle wird angezeigt",
+          "Spalte Datum zeigt „09.07.2025“"
+        ],
+        [
+          "FS-05.6",
+          "n",
+          "Eintrag vom 09.07.2025, 16:32:02",
+          "Tabelle wird angezeigt",
+          "Spalte Uhrzeit zeigt „16:32:02 Uhr“"
+        ],
+        [
+          "FS-03.1",
+          "n",
+          "Eintrag einer FRE; Eintrag einer Steuerbox",
+          "Tabelle wird angezeigt",
+          "Spalte Steuereinrichtung zeigt „FRE“; „Steuerbox“"
+        ],
+        [
+          "FS-01.9",
+          "b",
+          "Eintrag mit Status „freigegeben“; „abgeregelt“",
+          "Tabelle wird angezeigt",
+          "Status-Marke grün; rot"
+        ],
+        [
+          "FS-05.8",
+          "n",
+          "Eintrag mit Status „abgeregelt“; „freigegeben“",
+          "Tabelle wird angezeigt",
+          "Text der Status-Marke „abgeregelt“; „freigegeben“"
+        ],
+        [
+          "FS-05.7",
+          "n",
+          "Eintrag mit Leistungsstufe 30",
+          "Tabelle wird angezeigt",
+          "Spalte Leistung zeigt „30“, ohne „%“"
+        ],
+        [
+          "FS-05.5",
+          "n",
+          "217 Einträge geladen, kein Filter gesetzt",
+          "Anzeige",
+          "Text „217 Einträge“"
+        ]
+      ]
+    },
+    {
+      "id": "uc3",
+      "badge": "UC3",
+      "title": "Regelungen filtern",
+      "actor": "Anlagenbetreiber",
+      "ref": "FS-01, FS-03, FS-04, FS-05",
+      "goal": "Ein Anlagenbetreiber grenzt die Tabelle nach Zeitraum (Von/Bis), Steuergruppe und Steuereinrichtung ein.",
+      "src": "Entwurf A; Kommentare K-09 und K-10 am Entwurf",
+      "scenarios": [
+        [
+          "FS-05.4-a",
+          "n",
+          "Seite geladen",
+          "Anzeige",
+          "Filterbeschriftungen „Von“, „Bis“, „Steuergruppe“, „Steuereinrichtung“"
+        ],
+        [
+          "FS-01.8",
+          "b",
+          "Einträge der Steuergruppen „Nord“ und „Süd“",
+          "Filter Steuergruppe = „Nord“; = „Keine Auswahl“",
+          "Nur Zeilen von „Nord“; alle Zeilen"
+        ],
+        [
+          "FS-04.1",
+          "n",
+          "Eintrag vom 09.07.2026",
+          "Von 18.04.2026, Bis 10.08.2026",
+          "Die Zeile ist sichtbar"
+        ],
+        [
+          "FS-04.2",
+          "n",
+          "Eintrag vom 17.04.2026; vom 11.08.2026",
+          "Von 18.04.2026, Bis 10.08.2026",
+          "Die Zeile ist nicht sichtbar"
+        ],
+        [
+          "FS-03.2",
+          "v",
+          "Einträge von FRE und Steuerbox",
+          "Nur „Steuerbox“ angehakt",
+          "Nur Zeilen mit „Steuerbox“"
+        ],
+        [
+          "FS-03.3",
+          "v",
+          "Einträge von FRE und Steuerbox",
+          "Nur „FRE“ angehakt",
+          "Nur Zeilen mit „FRE“"
+        ],
+        [
+          "FS-03.4",
+          "v",
+          "Einträge von FRE und Steuerbox",
+          "„Steuerbox“ und „FRE“ angehakt",
+          "Zeilen beider Steuereinrichtungen"
+        ],
+        [
+          "FS-01.10",
+          "b",
+          "Filter Steuergruppe ist gesetzt",
+          "Klick auf „Zurücksetzen“",
+          "Filter Steuergruppe ist leer; alle Zeilen sichtbar"
+        ]
+      ],
+      "note": "„Unter Vorbehalt“: FS-03.2 bis FS-03.4 gelten nur, wenn der Filter nach Steuereinrichtung bleibt (Frage K-07-a)."
+    },
+    {
+      "id": "uc4",
+      "badge": "UC4",
+      "title": "Steuerhandlungen bereitstellen",
+      "actor": "Middleware, mit Daten der Systemführung",
+      "ref": "FS-02, FS-06",
+      "goal": "Die Middleware liefert die Steuerhandlungen der FRE und der Steuerboxen an das Backend, damit die Anwendung sie anzeigt.",
+      "src": "Epic, Teil 1 und Teil 2",
+      "scenarios": [
+        [
+          "FS-06.1",
+          "b",
+          "Für die Steuergruppe „Süd“ gibt es noch keinen Eintrag",
+          "Die Middleware meldet eine Steuerhandlung der FRE: 08.04.2026 14:34:35, „Süd“, Stufe 100, „freigegeben“",
+          "Der Eintrag ist gespeichert und wird mit diesen Werten zurückgegeben"
+        ]
+      ],
+      "note": "Für die Steuerbox gibt es noch kein Szenario (FS-02): Keine Quelle nennt Format, Weg oder Werte der Steuerbox-Daten. Die Fragen unten schließen diese Lücke."
+    }
+  ],
+  "topics": {
+    "N-FS05": "Maß für „verständlich“, „korrekt“ und „konsistent“",
+    "K-01": "Steuereinrichtung beim Ermitteln, Ausgabe des Ergebnisses",
+    "new-3": "Leistungsstufen und Status",
+    "new-14": "Zeitpunkt und Zeitzone",
+    "K-07": "Filter nach Steuereinrichtung",
+    "new-9": "Verhalten der Checkboxen",
+    "new-8": "Verhalten des Zeitraumfilters Von/Bis",
+    "new-2": "Lieferung der Steuerbox-Daten",
+    "new-5": "Steuergruppen der Steuerbox",
+    "new-13": "Abbildung der CSV, Schreibweise der Gruppennamen"
+  },
+  "questions": [
+    {
+      "id": "new-1",
+      "group": "g",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Welcher Entwurf gilt?",
+      "question": "Welcher Entwurf ist die Grundlage für die Umsetzung?",
+      "context": "Das Epic verlinkt Entwurf A: Adresse eingeben, Steuergruppe ermitteln, Tabelle aller Steuergruppen. Die neuesten Kommentare hängen an Entwurf B: SR-ID eingeben, Steuerhandlungen der eigenen Anlage, Herunterladen. Keine Quelle sagt, welcher gilt. Alle Szenarien dieser Seite beschreiben Entwurf A.",
+      "options": [
+        "Entwurf A: Ermittlung über die Adresse (PLZ, Ort, Ortsteil), Tabelle aller Steuergruppen mit Filtern",
+        "Entwurf B: Eingabe der SR-ID (Steuerbare Ressource), Steuerhandlungen der eigenen Anlage, Herunterladen",
+        "Beide: Entwurf A jetzt, Entwurf B als spätere Ausbaustufe"
+      ],
+      "proposal": null,
+      "reason": "Kein Vorschlag: Die Quellen widersprechen sich. Bei Entwurf B entfallen Use Case 1 und alle Fragen mit der Marke „nur Entwurf A“. Dafür entstehen neue Fragen: Daten je Anlage statt je Steuergruppe, und Zugriff ohne Anmeldung auf die Daten einer einzelnen Anlage. Dann sind Datenschutz und Informationssicherheit einzubinden.",
+      "raci": {
+        "FB": "R",
+        "PO": "A",
+        "UX": "C",
+        "ARCH": "C",
+        "DEV": "I",
+        "MW": "I"
+      },
+      "ref": "alle",
+      "dependsOn": []
+    },
+    {
+      "id": "new-12",
+      "group": "g",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Heutiges Verhalten ohne schriftliche Anforderung beibehalten?",
+      "question": "Die heutige Anwendung zeigt Verhalten, das in keiner Anforderung steht. Soll es so bleiben?",
+      "context": "Diese Punkte sind seit Teil 1 in Betrieb. Sie stehen nur im Code, nicht im Epic und nicht im Entwurf.",
+      "details": {
+        "summary": "Welche Punkte sind das?",
+        "items": [
+          "Der Button zum Ermitteln ist gesperrt, solange PLZ, Ort oder Ortsteil leer ist.",
+          "Kein Treffer zur Adresse: Dialog „Keine Region gefunden“. Mehrere Treffer: der erste zählt.",
+          "Technischer Fehler: Dialog „Es ist ein technischer Fehler aufgetreten.“ Fehlertexte am Feld PLZ.",
+          "Ort und Ortsteil werden vorbelegt, wenn es zur PLZ nur einen gibt.",
+          "Die Tabelle ist nach Zeitpunkt sortiert, neueste Einträge zuerst.",
+          "Das Dropdown „Steuergruppe“ zeigt die Gruppen, die in der Tabelle vorkommen, und „Keine Auswahl“.",
+          "Jeder Status außer „freigegeben“ wird rot als „Abgeregelt“ gezeigt.",
+          "„Zurücksetzen“ leert auch das Adressformular.",
+          "Die Tabelle ist ohne Anmeldung abrufbar; nur die Middleware darf Einträge anlegen.",
+          "Legende unter der Tabelle, Kartenansicht auf dem Smartphone, Tabelle mit eigenem Scrollbereich.",
+          "Wiederholungsbefehl: Hat der neueste Eintrag einer Steuergruppe schon dieselbe Stufe, wird nichts gespeichert.",
+          "Grenzen der Eingabe: Gruppenname bis 100 Zeichen, Stufe 0 bis 100, Status bis 50 Zeichen."
+        ]
+      },
+      "options": [
+        "Ja: Alles bleibt wie heute, soweit der neue Entwurf es nicht ändert. In allen Texten wird „Region“ zu „Steuergruppe“.",
+        "Nein: Jeden Punkt einzeln entscheiden (bitte in der Anmerkung nennen, was sich ändern soll)"
+      ],
+      "proposal": 0,
+      "reason": "Eine Einzelentscheidung erzeugt rund ein Dutzend neue Fragen zu Verhalten, das bisher niemand beanstandet hat.",
+      "raci": {
+        "PO": "A",
+        "DEV": "R",
+        "FB": "C",
+        "UX": "C"
+      },
+      "ref": "FS-01, FS-06",
+      "dependsOn": []
+    },
+    {
+      "id": "N-FS05a",
+      "group": "g",
+      "topic": "N-FS05",
+      "keystoneDependent": false,
+      "title": "Woran wird „verständlich“ und „korrekt“ gemessen?",
+      "question": "Das Epic verlangt eine „verständliche, filterbare und korrekte Darstellung“. Woran wird das bei der Abnahme geprüft?",
+      "context": "Ohne Maß ist die Aussage nicht prüfbar (FS-05, Nicht nachweisbar).",
+      "options": [
+        "Abnahme gegen den Entwurf durch die Fachseite",
+        "Nutzertest mit Anlagenbetreibern und einer Zielquote (bitte Quote nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Ohne neue Daten und ohne Testpersonen prüfbar.",
+      "raci": {
+        "PO": "A",
+        "FB": "C",
+        "UX": "I"
+      },
+      "ref": "FS-05",
+      "dependsOn": []
+    },
+    {
+      "id": "N-FS05b",
+      "group": "g",
+      "topic": "N-FS05",
+      "keystoneDependent": false,
+      "title": "Was heißt „konsistent“ für FRE und Steuerbox?",
+      "question": "Das Epic verlangt, Steuerhandlungen aus FRE und Steuerboxen „konsistent“ einzusehen. Was muss dafür gleich sein?",
+      "context": "Ohne Maß ist die Aussage nicht prüfbar (FS-05, Nicht nachweisbar).",
+      "options": [
+        "Dieselbe Tabelle mit denselben Spalten für beide Steuereinrichtungen, wie der Entwurf sie zeigt",
+        "Eine eigene Liste von Merkmalen (bitte nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Das prüfen die Szenarien FS-03.1 und FS-05.4-b dann schon.",
+      "raci": {
+        "PO": "A",
+        "FB": "C"
+      },
+      "ref": "FS-05",
+      "dependsOn": []
+    },
+    {
+      "id": "K-01-a",
+      "group": "uc1",
+      "topic": "K-01",
+      "keystoneDependent": true,
+      "title": "Auswahl der Steuereinrichtung beim Ermitteln",
+      "question": "Wählt der Anlagenbetreiber im oberen Block zusätzlich seine Steuereinrichtung (FRE oder Steuerbox), bevor er die Steuergruppe ermittelt?",
+      "context": "Die Fachseite hat das im Entwurf als nötig genannt. Der Entwurf zeigt es nicht, eine Antwort des Designs fehlt.",
+      "options": [
+        "Ja, als Pflichtauswahl vor „Steuergruppe ermitteln“",
+        "Ja, aber freiwillig: Ohne Auswahl werden die Steuergruppen beider Steuereinrichtungen ermittelt",
+        "Nein, die Auswahl entfällt"
+      ],
+      "proposal": 0,
+      "reason": "Laut Epic bilden Steuerboxen eigene Steuergruppen. Eine Adresse allein bestimmt die Gruppe dann nicht.",
+      "raci": {
+        "FB": "A",
+        "UX": "R",
+        "PO": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-01, FS-03",
+      "dependsOn": [
+        "new-5b"
+      ]
+    },
+    {
+      "id": "K-01-b",
+      "group": "uc1",
+      "topic": "K-01",
+      "keystoneDependent": true,
+      "title": "Ausgabe der ermittelten Steuergruppe",
+      "question": "Wie erfährt der Anlagenbetreiber, welche Steuergruppe ermittelt wurde?",
+      "context": "Heute wird die ermittelte Gruppe in den Filter der Tabelle übernommen. Die Fachseite fragt: „Auto-Fill im unteren Bereich?“",
+      "options": [
+        "Übernahme in den Filter „Steuergruppe“ der Tabelle (wie heute)",
+        "Übernahme in den Filter und zusätzlich als Text im oberen Block, zum Beispiel „Ihre Steuergruppe: Nord“",
+        "Nur als Text im oberen Block, ohne Übernahme in den Filter"
+      ],
+      "proposal": 0,
+      "reason": "Ist gebaut und entspricht dem Vorschlag der Fachseite.",
+      "raci": {
+        "PO": "A",
+        "UX": "R",
+        "FB": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-01",
+      "dependsOn": []
+    },
+    {
+      "id": "new-11",
+      "group": "uc1",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "Ort und Ortsteil: Auswahl oder freie Eingabe?",
+      "question": "Sind Ort und Ortsteil eine Auswahlliste oder freie Eingabefelder?",
+      "context": "Heute: Auswahl aus den Orten und Ortsteilen, die es zur PLZ gibt. Der Entwurf zeichnet Eingabefelder ohne Auswahlpfeil.",
+      "options": [
+        "Auswahlliste (wie heute)",
+        "Freie Eingabe (wie gezeichnet)"
+      ],
+      "proposal": 0,
+      "reason": "Die Steuergruppe wird nur bei genau gleicher Schreibweise gefunden. Eine Auswahl verhindert Tippfehler.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "DEV": "C",
+        "FB": "I"
+      },
+      "ref": "FS-01",
+      "dependsOn": []
+    },
+    {
+      "id": "K-06",
+      "group": "uc1",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "Straße als weiteres Adressfeld",
+      "question": "Braucht die Ermittlung zusätzlich die Straße?",
+      "context": "Stand der Fachseite: „das braucht es voraussichtlich nicht“. Eine endgültige Entscheidung steht nicht im Thread.",
+      "options": [
+        "Nein: PLZ, Ort und Ortsteil genügen",
+        "Ja: Straße als freiwilliges Feld"
+      ],
+      "proposal": 0,
+      "reason": "Entspricht dem Stand der Fachseite. Voraussetzung: Auch die Steuerbox-Gruppen lassen sich über PLZ, Ort und Ortsteil zuordnen.",
+      "raci": {
+        "PO": "A",
+        "FB": "C"
+      },
+      "ref": "FS-01",
+      "dependsOn": [
+        "new-5b"
+      ]
+    },
+    {
+      "id": "K-04",
+      "group": "uc1",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "Hilfe „Welche Steuereinrichtung habe ich?“",
+      "question": "Bekommt der Anlagenbetreiber eine Hilfe, um FRE und Steuerbox zu unterscheiden, und in welcher Form?",
+      "context": "Vorschlag der Fachseite: Foto-Popup im oberen Block, Bild A Steuerbox, Bild B FRE. Design und Fachseite sind sich seit dem Austausch einig: eine visuelle Hilfe, keine langen Texte.",
+      "options": [
+        "Foto-Popup im oberen Block: Bild A Steuerbox, Bild B FRE, wenig Text",
+        "Info-Symbol (i) an den Checkboxen „Steuerbox“ und „FRE“",
+        "Nicht in dieser Ausbaustufe"
+      ],
+      "proposal": 0,
+      "reason": "Vorschlag der Fachseite. Bitte in der Anmerkung nennen, wer die beiden Fotos liefert.",
+      "raci": {
+        "FB": "A",
+        "UX": "R",
+        "PO": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-03",
+      "dependsOn": []
+    },
+    {
+      "id": "new-6",
+      "group": "uc2",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Grund der Steuerhandlung",
+      "question": "Welche Gründe kann die Spalte „Grund“ zeigen, und woher kommen sie?",
+      "context": "Entschieden: Der Grund bleibt sichtbar, „es gibt auch andere Begründungen“. Heute steht fest „Engpass“ in der Anwendung; die gelieferten Daten haben kein Feld dafür. Die FRE-Testdaten enthalten den Text „EEG-Regelung“; ob das der Grund ist, ist nicht belegt.",
+      "options": [
+        "Der Grund kommt je Steuerhandlung aus den gelieferten Daten; die Systemführung nennt die möglichen Werte",
+        "Fester Text „Engpass“ wie heute, bis die Daten einen Grund enthalten",
+        "Feste Liste von Gründen, die die Fachseite vorgibt (bitte in der Anmerkung nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Ein fester Text kann „andere Begründungen“ nicht zeigen.",
+      "raci": {
+        "FB": "AR",
+        "MW": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "K-03",
+      "group": "uc2",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Hinweis zur Steuerbarkeit",
+      "question": "Wo steht der Hinweis zur Steuerbarkeit (Wechselrichter, Stufen 60 / 30 / 0 %)?",
+      "context": "Der Entwurf zeigt ihn im oberen Block. Vorschlag der Fachseite: aus der Anwendung nehmen und als Infobox der Website unter die Anwendung setzen, mit eigenem Text und ohne Verweis auf die FAQ. Dazu der Hinweis: „Erzeugung“ statt „Einspeisung“.",
+      "options": [
+        "Als Infobox der Website (CMS) unter der Anwendung; der Text liegt bei der Fachseite",
+        "Im oberen Block der Anwendung, wie gezeichnet",
+        "In der Anwendung unter der Tabelle, fest eingebaut"
+      ],
+      "proposal": 0,
+      "reason": "Vorschlag der Fachseite. Der Text lässt sich dann ohne neue Version der Anwendung ändern.",
+      "raci": {
+        "FB": "A",
+        "UX": "C",
+        "PO": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-05",
+      "dependsOn": []
+    },
+    {
+      "id": "new-3a",
+      "group": "uc2",
+      "topic": "new-3",
+      "keystoneDependent": false,
+      "title": "Leistungsstufen",
+      "question": "Auf welche Stufen kann eine Anlage geregelt werden, und gelten sie für FRE und Steuerbox gleich?",
+      "context": "Hinweistext der Fachseite: 60 / 30 / 0 %. Entwurf: 0, 30, 60, 100. Fachseite: „100 - 60 - 30 - 0“.",
+      "options": [
+        "100 / 60 / 30 / 0 für FRE und Steuerbox",
+        "Steuerbox: 100 / 60 / 30 / 0; FRE: andere Stufen (bitte nennen)",
+        "Andere Stufen (bitte nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Drei Stellen nennen dieselben Werte.",
+      "raci": {
+        "FB": "AR",
+        "MW": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "new-3b",
+      "group": "uc2",
+      "topic": "new-3",
+      "keystoneDependent": false,
+      "title": "Wer bildet Status und Stufe einer Steuerbox-Steuerhandlung?",
+      "question": "Wer setzt für eine Steuerbox-Steuerhandlung die Werte „Status“ (abgeregelt / freigegeben) und „Stufe“?",
+      "context": "Bei FRE setzt die Middleware beide Werte. Die Regel dafür steht in keiner Quelle (siehe new-13a).",
+      "options": [
+        "Die Middleware bildet beide Werte, wie bei FRE",
+        "Die Datenquelle liefert beide Werte fertig",
+        "Das Backend leitet den Status aus der Stufe ab (100 = freigegeben, sonst abgeregelt)"
+      ],
+      "proposal": 0,
+      "reason": "Gleicher Weg wie bei FRE, keine Änderung am Backend.",
+      "raci": {
+        "ARCH": "A",
+        "MW": "R",
+        "FB": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-02",
+      "dependsOn": [
+        "new-13a"
+      ]
+    },
+    {
+      "id": "new-7",
+      "group": "uc2",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "„Steuerbox/FRE“ in einer Zelle, „100“ als Grund",
+      "question": "Der Entwurf enthält unterhalb des sichtbaren Bereichs zwei Zeilen mit „Steuerbox/FRE“ in einer Zelle und „100“ in der Spalte Grund. Haben sie eine Bedeutung?",
+      "context": "Entschieden: In der Spalte Steuereinrichtung steht „entweder FRE oder Steuerbox“.",
+      "options": [
+        "Nein, das sind Reste des Entwurfs",
+        "Ja (bitte die Bedeutung nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Die Zeilen widersprechen der Entscheidung zur Spalte Steuereinrichtung und sind im Entwurf abgeschnitten.",
+      "raci": {
+        "PO": "A",
+        "UX": "R"
+      },
+      "ref": "FS-02, FS-03",
+      "dependsOn": []
+    },
+    {
+      "id": "K-08",
+      "group": "uc2",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Laufende Steuerungen kennzeichnen",
+      "question": "Sollen gerade laufende Steuerungen in der Tabelle gekennzeichnet werden, zum Beispiel durch einen Punkt in einer Zusatzspalte?",
+      "context": "Frage der Fachseite, bisher ohne Antwort. Das System speichert Ereignisse, keinen Zustand: „laufend“ ließe sich nur daraus ableiten, dass der neueste Eintrag einer Steuergruppe „abgeregelt“ ist.",
+      "options": [
+        "Ja: Kennzeichnung am neuesten Eintrag einer Steuergruppe, solange er „abgeregelt“ ist",
+        "Nein, nicht in dieser Ausbaustufe",
+        "Ja, aber erst, wenn die Daten zeitnah geliefert werden"
+      ],
+      "proposal": 1,
+      "reason": "Bei täglicher Lieferung (Stand FRE laut Epic) ist „gerade laufend“ bis zu einem Tag alt und kann falsch sein. Das ist eine Schlussfolgerung, kein Beleg; die Antwort auf new-2c kann sie ändern.",
+      "raci": {
+        "PO": "A",
+        "DEV": "R",
+        "FB": "C",
+        "ARCH": "C"
+      },
+      "ref": "FS-05",
+      "dependsOn": [
+        "new-2c"
+      ]
+    },
+    {
+      "id": "K-05",
+      "group": "uc2",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Zeilen abwechselnd hinterlegen",
+      "question": "Werden die Tabellenzeilen abwechselnd hinterlegt?",
+      "context": "Der Entwurf zeigt es. Der Kommentar dazu ist offen.",
+      "options": [
+        "Ja, wie gezeichnet",
+        "Nein"
+      ],
+      "proposal": 0,
+      "reason": "Der Entwurf zeigt es bereits.",
+      "raci": {
+        "PO": "A",
+        "UX": "C"
+      },
+      "ref": "FS-05",
+      "dependsOn": []
+    },
+    {
+      "id": "new-14a",
+      "group": "uc2",
+      "topic": "new-14",
+      "keystoneDependent": false,
+      "title": "Zeitpunkt aus der CSV",
+      "question": "Welches Feld der CSV übernimmt die Middleware als Zeitpunkt?",
+      "context": "In den Testdaten steht Feld 3 („2025-10-03 17:04:23“) in UTC+1; Feld 2 (1759507463) ist derselbe Moment als eindeutige Zahl. Die gesetzliche Zeit an diesem Tag war UTC+2. Das Backend speichert den Zeitpunkt ohne Zeitzone.",
+      "options": [
+        "Feld 2 (Unix-Zeit, eindeutig)",
+        "Feld 3 (Ortszeit ohne Zone)"
+      ],
+      "proposal": 0,
+      "reason": "Feld 3 weicht in den Testdaten im Sommer um eine Stunde von der gesetzlichen Zeit ab.",
+      "raci": {
+        "ARCH": "A",
+        "MW": "R",
+        "DEV": "C"
+      },
+      "ref": "FS-06",
+      "dependsOn": []
+    },
+    {
+      "id": "new-14b",
+      "group": "uc2",
+      "topic": "new-14",
+      "keystoneDependent": false,
+      "title": "Zeitzone von Datum und Uhrzeit",
+      "question": "In welcher Zeitzone zeigt die Anwendung Datum und Uhrzeit?",
+      "context": "Heute: in der Zeitzone des Geräts. Ein Gerät mit anderer Zeitzone zeigt eine andere Uhrzeit und gegebenenfalls ein anderes Datum.",
+      "options": [
+        "Immer deutsche gesetzliche Zeit (MEZ / MESZ), unabhängig vom Gerät",
+        "Zeitzone des Geräts (wie heute)"
+      ],
+      "proposal": 0,
+      "reason": "Die Steuerhandlung findet im Versorgungsgebiet statt. Sonst liefert auch der Filter Von/Bis je nach Gerät andere Zeilen.",
+      "raci": {
+        "PO": "A",
+        "ARCH": "R",
+        "DEV": "C",
+        "FB": "I"
+      },
+      "ref": "FS-01, FS-04, FS-05",
+      "dependsOn": [
+        "new-14a"
+      ]
+    },
+    {
+      "id": "K-07-a",
+      "group": "uc3",
+      "topic": "K-07",
+      "keystoneDependent": true,
+      "title": "Wird der Filter gebraucht?",
+      "question": "Wird der Filter nach Steuereinrichtung (Checkboxen „Steuerbox“ und „FRE“) gebraucht?",
+      "context": "Design: „Dann könnte man hinterfragen, ob man es überhaupt braucht.“ Fachseite: „Ich vermute, dass wir es brauchen, falls gleiche regionale Benennungen erfolgen.“ Die Spalte „Steuereinrichtung“ selbst ist entschieden.",
+      "options": [
+        "Ja, der Filter bleibt",
+        "Nein, die Spalte „Steuereinrichtung“ genügt",
+        "Erst entscheiden, wenn die Namen der Steuerbox-Gruppen feststehen"
+      ],
+      "proposal": 0,
+      "reason": "Der Filter funktioniert unabhängig von der Benennung. Mit „Ja“ gelten die Szenarien FS-03.2 bis FS-03.4 ohne Vorbehalt.",
+      "raci": {
+        "FB": "A",
+        "UX": "C",
+        "PO": "C"
+      },
+      "ref": "FS-03",
+      "dependsOn": [
+        "new-5a"
+      ]
+    },
+    {
+      "id": "K-07-b",
+      "group": "uc3",
+      "topic": "K-07",
+      "keystoneDependent": true,
+      "title": "Platz der Checkboxen",
+      "question": "Stehen die Checkboxen „Steuerbox“ und „FRE“ vor oder rechts vom Dropdown „Steuergruppe“?",
+      "context": "Der Entwurf zeigt sie rechts. Die Fachseite schlägt vor, sie davor zu setzen, „da ja so die Auswahl reduziert wird“.",
+      "options": [
+        "Vor dem Dropdown „Steuergruppe“",
+        "Rechts vom Dropdown (wie gezeichnet)"
+      ],
+      "proposal": 0,
+      "reason": "Passt zu new-9b: Die Checkbox schränkt die Auswahl im Dropdown ein, also steht sie davor.",
+      "raci": {
+        "PO": "A",
+        "UX": "R",
+        "FB": "C"
+      },
+      "ref": "FS-03",
+      "dependsOn": [
+        "K-07-a"
+      ]
+    },
+    {
+      "id": "new-9a",
+      "group": "uc3",
+      "topic": "new-9",
+      "keystoneDependent": true,
+      "title": "Keine Checkbox angehakt",
+      "question": "Was zeigt die Tabelle, wenn weder „Steuerbox“ noch „FRE“ angehakt ist?",
+      "context": "Der Entwurf zeigt beide Checkboxen leer und Zeilen beider Steuereinrichtungen. Seine Daten sind aber kein Filterergebnis.",
+      "options": [
+        "Alle Zeilen (kein Filter)",
+        "Keine Zeile"
+      ],
+      "proposal": 0,
+      "reason": "So zeigt es der Entwurf.",
+      "raci": {
+        "PO": "A",
+        "UX": "C"
+      },
+      "ref": "FS-03",
+      "dependsOn": [
+        "K-07-a"
+      ]
+    },
+    {
+      "id": "new-9b",
+      "group": "uc3",
+      "topic": "new-9",
+      "keystoneDependent": true,
+      "title": "Wirkung der Checkboxen auf das Dropdown",
+      "question": "Ändern die Checkboxen die Auswahl im Dropdown „Steuergruppe“?",
+      "context": "Die Fachseite geht davon aus („da ja so die Auswahl reduziert wird“).",
+      "options": [
+        "Ja: Das Dropdown zeigt nur Steuergruppen der angehakten Steuereinrichtung",
+        "Nein: Das Dropdown zeigt immer alle Steuergruppen"
+      ],
+      "proposal": 0,
+      "reason": "Entspricht der Erwartung der Fachseite.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-03",
+      "dependsOn": [
+        "K-07-a"
+      ]
+    },
+    {
+      "id": "K-02",
+      "group": "uc3",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Bisheriger Statusfilter",
+      "question": "Darf der heutige Filter nach Status („Abgeregelt“ / „Freigegeben“) entfallen?",
+      "context": "Der neue Entwurf enthält ihn nicht. Begründung des Designs: Abregelung und Freigabe gehören zusammen; ein Filter nach nur einem Status nimmt Einträge aus dem Verlauf und ändert, wie er zu lesen ist. Die Fachseite wollte das abklären.",
+      "options": [
+        "Ja, der Statusfilter entfällt",
+        "Nein, der Statusfilter bleibt"
+      ],
+      "proposal": 0,
+      "reason": "Die Begründung des Designs ist unwidersprochen.",
+      "raci": {
+        "FB": "A",
+        "UX": "C",
+        "PO": "I"
+      },
+      "ref": "FS-01",
+      "dependsOn": []
+    },
+    {
+      "id": "new-8a",
+      "group": "uc3",
+      "topic": "new-8",
+      "keystoneDependent": false,
+      "title": "Grenzen",
+      "question": "Zählen die Tage „Von“ und „Bis“ selbst zum Zeitraum?",
+      "context": "Entschieden ist nur: Zeitraum „von“ - „bis“. Die Szenarien FS-04.1 und FS-04.2 prüfen deshalb keinen Grenztag.",
+      "options": [
+        "Ja: 18.04. bis 10.08. zeigt auch Einträge vom 18.04. und vom 10.08.",
+        "Nein: Die Grenztage zählen nicht mit"
+      ],
+      "proposal": 0,
+      "reason": "So liest ein Anlagenbetreiber „von … bis“.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-8b",
+      "group": "uc3",
+      "topic": "new-8",
+      "keystoneDependent": false,
+      "title": "Vorbelegung",
+      "question": "Womit sind „Von“ und „Bis“ beim Öffnen der Seite belegt?",
+      "context": "Heute gibt es keinen Datumsfilter; die Tabelle zeigt alle Einträge.",
+      "options": [
+        "Beide Felder leer, alle Einträge sichtbar",
+        "Die letzten 30 Tage",
+        "Das laufende Kalenderjahr"
+      ],
+      "proposal": 0,
+      "reason": "Entspricht dem heutigen Verhalten.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "FB": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-8c",
+      "group": "uc3",
+      "topic": "new-8",
+      "keystoneDependent": false,
+      "title": "Nur ein Datum",
+      "question": "Was gilt, wenn nur „Von“ oder nur „Bis“ gefüllt ist?",
+      "context": "",
+      "options": [
+        "Erlaubt: nur „Von“ = ab diesem Tag, nur „Bis“ = bis zu diesem Tag",
+        "Der Filter wirkt erst, wenn beide Felder gefüllt sind"
+      ],
+      "proposal": 0,
+      "reason": "Ein Feld weniger auszufüllen, kein Sonderfall für den Nutzer.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-8d",
+      "group": "uc3",
+      "topic": "new-8",
+      "keystoneDependent": false,
+      "title": "„Von“ liegt nach „Bis“",
+      "question": "Was geschieht, wenn „Von“ nach „Bis“ liegt?",
+      "context": "",
+      "options": [
+        "Fehlermeldung am Feld, die Tabelle bleibt unverändert",
+        "Der Kalender lässt diese Auswahl nicht zu",
+        "Keine Meldung, die Tabelle ist leer"
+      ],
+      "proposal": 0,
+      "reason": "Gilt auch, wenn das Datum über die Tastatur eingegeben wird.",
+      "raci": {
+        "PO": "A",
+        "UX": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-8e",
+      "group": "uc3",
+      "topic": "new-8",
+      "keystoneDependent": false,
+      "title": "„Zurücksetzen“",
+      "question": "Leert „Zurücksetzen“ auch „Von“ und „Bis“?",
+      "context": "Heute leert „Zurücksetzen“ alle Filter.",
+      "options": [
+        "Ja",
+        "Nein, nur Steuergruppe und Steuereinrichtung"
+      ],
+      "proposal": 0,
+      "reason": "Entspricht dem heutigen Verhalten.",
+      "raci": {
+        "PO": "A",
+        "UX": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-10",
+      "group": "uc3",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Anzahl der Einträge bei gesetztem Filter",
+      "question": "Zählt „N Einträge“ die gefilterten oder alle Einträge?",
+      "context": "Entschieden ist nur der Fall ohne Filter (FS-05.5).",
+      "options": [
+        "Die gefilterten Einträge",
+        "Immer alle Einträge"
+      ],
+      "proposal": 0,
+      "reason": "Die Zahl beschreibt dann, was die Tabelle zeigt.",
+      "raci": {
+        "PO": "A",
+        "UX": "C"
+      },
+      "ref": "FS-05",
+      "dependsOn": []
+    },
+    {
+      "id": "N-FS04",
+      "group": "uc3",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Reichen diese Filter?",
+      "question": "Das Epic nennt „eingeschränkte Filtermöglichkeiten“ als Mangel. Ist er mit den Filtern des Entwurfs behoben?",
+      "context": "Ohne Maß ist die Aussage nicht prüfbar (FS-04, Nicht nachweisbar). Kommentar am Entwurf: „Anforderung war die Integration der Steuergruppe und Datum filterung.“",
+      "options": [
+        "Ja: Von/Bis, Steuergruppe und Steuereinrichtung sind das Maß",
+        "Nein: weitere Filter (bitte nennen)"
+      ],
+      "proposal": 0,
+      "reason": "So nennt der Kommentar am Entwurf die Anforderung.",
+      "raci": {
+        "PO": "A",
+        "FB": "C"
+      },
+      "ref": "FS-04",
+      "dependsOn": []
+    },
+    {
+      "id": "new-2a",
+      "group": "uc4",
+      "topic": "new-2",
+      "keystoneDependent": false,
+      "title": "Format",
+      "question": "In welchem Format liefert die Steuerbox-Quelle die Steuerhandlungen, und gibt es eine Beispieldatei?",
+      "context": "Epic: Die Daten kommen „über CSV-Dateien, die regelmäßig bereitgestellt werden“, „aus einer separaten Datenquelle“. Format und Beispiel fehlen. Für FRE liegen drei Testzeilen vor.",
+      "options": [
+        "Gleiches Format wie die FRE-CSV",
+        "Anderes Format: Beispieldatei und Feldbeschreibung werden geliefert (bitte Ablageort nennen)",
+        "Steht noch nicht fest (bitte Termin nennen)"
+      ],
+      "proposal": null,
+      "reason": "Kein Vorschlag: Faktenfrage. Ohne Beispieldatei gibt es für die Steuerbox kein prüfbares Szenario.",
+      "raci": {
+        "FB": "R",
+        "ARCH": "A",
+        "MW": "C",
+        "DEV": "C"
+      },
+      "ref": "FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "new-2b",
+      "group": "uc4",
+      "topic": "new-2",
+      "keystoneDependent": false,
+      "title": "Weg ins Backend",
+      "question": "Auf welchem Weg kommen die Steuerbox-Daten ins Backend?",
+      "context": "FRE heute: Die Middleware liest die CSV und sendet je Steuerhandlung einen Aufruf mit Zeitpunkt, Gruppe, Stufe und Status. Das Backend liest keine CSV und hat keinen Zeitplan.",
+      "options": [
+        "Wie FRE: über die Middleware und denselben Aufruf",
+        "Eigene Schnittstelle für Steuerbox-Daten",
+        "Anderer Weg (bitte nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Der Weg läuft bereits; das Backend bleibt bis auf das Feld Steuereinrichtung gleich. Eine eigene Schnittstelle kann die Deployment-Konfiguration ändern; dann ist das Plattform-Team einzubinden.",
+      "raci": {
+        "ARCH": "A",
+        "MW": "R",
+        "DEV": "C",
+        "FB": "I",
+        "PLAT": "C"
+      },
+      "ref": "FS-02",
+      "dependsOn": [
+        "new-2a"
+      ]
+    },
+    {
+      "id": "new-2c",
+      "group": "uc4",
+      "topic": "new-2",
+      "keystoneDependent": false,
+      "title": "Takt",
+      "question": "Wie schnell nach einer Steuerhandlung der Steuerbox muss sie in der Anwendung sichtbar sein?",
+      "context": "Epic: „regelmäßig bereitgestellt“, ohne Takt. Für FRE nennt das Epic eine „tägliche Abholung“.",
+      "options": [
+        "Täglich, wie bei FRE",
+        "Mit festem Verzug (bitte Minuten oder Stunden nennen)"
+      ],
+      "proposal": 0,
+      "reason": "Der FRE-Weg läuft schon so. Die Systemführung bestätigt, ob die Quelle das liefern kann.",
+      "raci": {
+        "FB": "AR",
+        "MW": "C",
+        "PO": "C"
+      },
+      "ref": "FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "N-FS06",
+      "group": "uc4",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Wo wird der Takt geprüft?",
+      "question": "An welcher Stelle wird geprüft, dass die Daten im vereinbarten Takt ankommen?",
+      "context": "Die Middleware liegt nicht im Repository, das Backend hat keinen Zeitplan (FS-06, Nicht nachweisbar).",
+      "options": [
+        "In der Middleware; im Backend gibt es dazu keinen Test",
+        "Das Backend meldet, wenn länger als ein Tag kein Eintrag ankommt"
+      ],
+      "proposal": 0,
+      "reason": "Die Middleware steuert den Takt; nichts Neues zu bauen. Eine Meldung im Backend braucht Überwachung auf der Plattform; dann ist das Plattform-Team einzubinden.",
+      "raci": {
+        "ARCH": "A",
+        "MW": "R",
+        "DEV": "I",
+        "PLAT": "C"
+      },
+      "ref": "FS-06",
+      "dependsOn": []
+    },
+    {
+      "id": "new-4",
+      "group": "uc4",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "Steuereinrichtung im Datensatz",
+      "question": "Wie erfährt das Backend, ob eine Steuerhandlung von einer FRE oder einer Steuerbox stammt?",
+      "context": "Heute hat ein Eintrag kein Feld dafür.",
+      "options": [
+        "Neues Feld „Steuereinrichtung“ im Aufruf; die Middleware setzt es je Quelle; bestehende Einträge gelten als FRE",
+        "Ableitung aus dem Namen der Steuergruppe",
+        "Getrennte Schnittstellen je Quelle"
+      ],
+      "proposal": 0,
+      "reason": "Funktioniert auch, wenn FRE- und Steuerbox-Gruppen gleich heißen (new-5a).",
+      "raci": {
+        "ARCH": "A",
+        "DEV": "R",
+        "MW": "C"
+      },
+      "ref": "FS-02, FS-03",
+      "dependsOn": [
+        "new-2b"
+      ]
+    },
+    {
+      "id": "new-5a",
+      "group": "uc4",
+      "topic": "new-5",
+      "keystoneDependent": true,
+      "title": "Namen",
+      "question": "Können Steuergruppen der Steuerbox denselben Namen haben wie Steuergruppen der FRE?",
+      "context": "Der Entwurf zeigt „Nord“ für beide. Stand: Die Steuergruppen der Steuerbox und ihre Benennung stehen noch nicht fest.",
+      "options": [
+        "Nein, die Namen überschneiden sich nie",
+        "Ja, gleiche Namen sind möglich",
+        "Steht noch nicht fest (bitte Termin nennen)"
+      ],
+      "proposal": null,
+      "reason": "Kein Vorschlag: Faktenfrage.",
+      "raci": {
+        "FB": "AR",
+        "ARCH": "I"
+      },
+      "ref": "FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "new-5b",
+      "group": "uc4",
+      "topic": "new-5",
+      "keystoneDependent": true,
+      "title": "Zuordnung einer Adresse",
+      "question": "Wie wird eine Adresse einer Steuergruppe der Steuerbox zugeordnet?",
+      "context": "Heute (FRE): eine Steuergruppe je PLZ, Ort und Ortsteil, von Hand importiert aus einer Excel-Liste. Stand: Die Steuergruppen der Steuerbox und ihre Benennung stehen noch nicht fest.",
+      "options": [
+        "Wie bei FRE: Liste PLZ / Ort / Ortsteil → Steuergruppe, ergänzt um die Steuereinrichtung",
+        "Eigene Liste oder Datenquelle für Steuerboxen (bitte nennen)",
+        "Über die Adresse ist keine Zuordnung möglich",
+        "Steht noch nicht fest (bitte Termin nennen)"
+      ],
+      "proposal": null,
+      "reason": "Kein Vorschlag: Faktenfrage. Von der Antwort hängen die Auswahl der Steuereinrichtung und das Feld Straße ab (Use Case 1).",
+      "raci": {
+        "FB": "R",
+        "ARCH": "A",
+        "DEV": "C"
+      },
+      "ref": "FS-01, FS-02",
+      "dependsOn": []
+    },
+    {
+      "id": "new-5c",
+      "group": "uc4",
+      "topic": "new-5",
+      "keystoneDependent": true,
+      "title": "Wiederholungsbefehl bei gleichen Namen",
+      "question": "Heute wird ein Eintrag nicht gespeichert, wenn der neueste Eintrag derselben Gruppe schon dieselbe Stufe hat. Soll dieser Vergleich die Steuereinrichtung einbeziehen?",
+      "context": "Der Vergleich betrachtet heute nur Gruppe und Stufe.",
+      "options": [
+        "Ja: Vergleich über Gruppe, Steuereinrichtung und Stufe",
+        "Nein: unverändert über Gruppe und Stufe"
+      ],
+      "proposal": 0,
+      "reason": "Sonst geht eine Steuerbox-Steuerhandlung verloren, wenn eine gleichnamige FRE-Gruppe zuletzt dieselbe Stufe hatte.",
+      "raci": {
+        "ARCH": "A",
+        "DEV": "R",
+        "MW": "C"
+      },
+      "ref": "FS-02, FS-06",
+      "dependsOn": [
+        "new-5a",
+        "new-4"
+      ]
+    },
+    {
+      "id": "new-13a",
+      "group": "uc4",
+      "topic": "new-13",
+      "keystoneDependent": false,
+      "title": "Abbildungsregel der Middleware",
+      "question": "Nach welcher Regel bildet die Middleware aus einer CSV-Zeile die Werte Gruppe, Stufe und Status?",
+      "context": "Testdaten: „FRE Region S.“, „100%“. Beispiel im Epic: „Süd“, 100, „freigegeben“. Die Regel dazwischen steht in keiner Quelle; die Abbildung im Epic (ein Anhang) liegt nicht vor.",
+      "options": [
+        "Die Regel ist dokumentiert (bitte Ablageort nennen)",
+        "Die Regel steht nur im Code der Middleware; ein Auszug wird geliefert",
+        "Die Regel ist nicht bekannt"
+      ],
+      "proposal": null,
+      "reason": "Kein Vorschlag: Faktenfrage. Dieselbe Regel wird für die Steuerbox gebraucht.",
+      "raci": {
+        "MW": "R",
+        "ARCH": "A",
+        "FB": "C",
+        "DEV": "I"
+      },
+      "ref": "FS-01, FS-02, FS-06",
+      "dependsOn": []
+    },
+    {
+      "id": "new-13b",
+      "group": "uc4",
+      "topic": "new-13",
+      "keystoneDependent": false,
+      "title": "Gleiche Schreibweise der Gruppennamen",
+      "question": "Wer stellt sicher, dass ein Gruppenname in den gelieferten Daten genauso geschrieben ist wie in der Adressliste?",
+      "context": "Die Anwendung findet die Zeilen einer Steuergruppe nur bei genau gleicher Schreibweise. Die Adressliste wird von Hand aus Excel importiert, die Namen der Steuerhandlungen bildet die Middleware.",
+      "options": [
+        "Eine führende Liste der Steuergruppen; Middleware und Adressliste übernehmen deren Schreibweise",
+        "Technischer Schlüssel je Steuergruppe statt des Namens",
+        "Wie heute: Abgleich von Hand"
+      ],
+      "proposal": 0,
+      "reason": "Kein Umbau der Schnittstelle nötig. Bitte in der Anmerkung nennen, wer die führende Liste pflegt.",
+      "raci": {
+        "ARCH": "A",
+        "FB": "R",
+        "MW": "C"
+      },
+      "ref": "FS-01, FS-02, FS-06",
+      "dependsOn": []
+    }
+  ],
+  "comparison": {
+    "heading": "Die zwei Entwürfe",
+    "caption": "Schema, kein Abbild. Die Szenarien dieser Seite beschreiben Entwurf A.",
+    "cards": [
+      {
+        "title": "Entwurf A · über die Adresse",
+        "blocks": [
+          {
+            "type": "bar",
+            "items": [
+              {
+                "text": "PLZ"
+              },
+              {
+                "text": "Ort"
+              },
+              {
+                "text": "Ortsteil"
+              },
+              {
+                "text": "Steuergruppe ermitteln",
+                "primary": true
+              }
+            ]
+          },
+          {
+            "type": "bar",
+            "items": [
+              {
+                "text": "Von"
+              },
+              {
+                "text": "Bis"
+              },
+              {
+                "text": "Steuergruppe ▾"
+              },
+              {
+                "text": "☐ Steuerbox"
+              },
+              {
+                "text": "☐ FRE"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "lines": [
+              "Tabelle: Steuerhandlungen aller Steuergruppen",
+              "Datum · Uhrzeit · Steuergruppe · Steuereinrichtung · Status · Leistung · Grund"
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Entwurf B · über die Kennung der Anlage",
+        "blocks": [
+          {
+            "type": "bar",
+            "items": [
+              {
+                "text": "Von"
+              },
+              {
+                "text": "Bis"
+              },
+              {
+                "text": "SR-ID"
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "lines": [
+              "Tabelle: Steuerhandlungen der eigenen Anlage",
+              "Datum · Uhrzeit · SR-ID · Status · Leistung · Grund"
+            ]
+          },
+          {
+            "type": "bar",
+            "items": [
+              {
+                "text": "Herunterladen",
+                "primary": true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "extraRolesNote": "Weitere Stelle, falls Entwurf B (SR-ID) gilt: Datenschutz und Informationssicherheit, weil dann Daten einer einzelnen Anlage ohne Anmeldung abrufbar wären.",
+  "missing": [
+    [
+      "Epic, Anhang (Abbildung unter „Middleware“)",
+      "Product Owner",
+      "Kann die Frage new-13a beantworten"
+    ],
+    [
+      "Wiki-Seite mit der grundlegenden Dokumentation",
+      "Product Owner",
+      "Grundlagen der heutigen Anwendung"
+    ],
+    [
+      "Story zu den Filteroptionen",
+      "Product Owner",
+      "Im Wiki-Export genannt"
+    ],
+    [
+      "Prozessbeschreibung zum Steuerbox-Rollout (liegt nur als unlesbares Bild vor)",
+      "Fachbereich (Steuerbox-Rollout)",
+      "Kann die Fragen new-5a und new-5b betreffen"
+    ],
+    [
+      "Beispieldatei der Steuerbox-CSV",
+      "Fachbereich (Systemführung)",
+      "Frage new-2a"
+    ]
+  ],
+  "outOfScope": [
+    "SR-ID-Konzept (Entwurf B): eigener Use Case mit SR-ID-Eingabe, „Herunterladen“, Leerzustand und „Zu den FAQ“. Hängt an Frage new-1.",
+    "Segmentierter Balken für die Leistungsstufen (100 - 60 - 30 - 0): als Idee erledigt, „in einer V2 oder V3“.",
+    "Einträge eines Tages je Steuergruppe zusammenfassen: vom Design ausgeschlossen.",
+    "Farbunterschied zwischen 100 % und 30 % abgeregelt: als Idee erledigt.",
+    "Sortierung durch den Nutzer: als Idee erledigt; der Entwurf zeigt keine.",
+    "Trennung des Epics in FRE und Steuerbox (Kommentar im Epic): Planung, kein Verhalten."
+  ],
+  "sources": [
+    "Epic: Zielsetzung, Teil 1 (FRE), Teil 2 (Steuerbox), Stakeholder.",
+    "Entwurfsdatei: Entwurf A, im Epic verlinkt; Entwurf B, SR-ID; Kommentare beider Entwürfe.",
+    "Wiki-Seite zu den Filteroptionen.",
+    "Testdaten der FRE-Abholung (drei Zeilen, keine Steuerbox-Zeile).",
+    "Die heutige Anwendung (Frontend und Backend), für alles mit dem Stand „gebaut“."
+  ],
+  "glossary": [
+    [
+      "Steuerhandlung",
+      "Ein Befehl an eine Steuergruppe: Abregelung auf eine Stufe oder Freigabe. In der Tabelle eine Zeile."
+    ],
+    [
+      "Steuergruppe",
+      "Gruppe von Anlagen, die gemeinsam gesteuert werden. Bisher in der Anwendung „Region“ oder „Schaltgruppe“."
+    ],
+    [
+      "Steuereinrichtung",
+      "Das Gerät an der Anlage: Funkrundsteuerempfänger (FRE) oder Steuerbox."
+    ],
+    [
+      "Middleware",
+      "Das System, das die gelieferten CSV-Dateien liest und die Steuerhandlungen an die Anwendung meldet."
+    ],
+    [
+      "Thema, Teilfrage",
+      "Ein Thema ist eine offene Stelle oder eine nicht nachweisbare Aussage des Feature-Sets. Eine Teilfrage ist der Teil davon, der sich mit einer Auswahl beantworten lässt."
+    ],
+    [
+      "gebaut / neu",
+      "„gebaut“: Die heutige Anwendung verhält sich schon so. „neu“: Entschieden, noch zu bauen."
+    ]
+  ]
+}

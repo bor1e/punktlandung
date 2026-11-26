@@ -15,7 +15,7 @@ while IFS= read -r file; do
     VERSION_STAGED=true
   fi
   case "$file" in
-    skills/*|example.html|scripts/*|README.md)
+    skills/*|template/*|examples/*|example.html|scripts/*|README.md)
       CONTENT_STAGED=true
       ;;
   esac

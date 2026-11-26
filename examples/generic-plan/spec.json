@@ -1,0 +1,114 @@
+{
+  "id": "order-csv-export",
+  "logo": "EX",
+  "brand": "Order Export",
+  "subtitle": "Generic plan.md example",
+  "title": "CSV Export for Order History",
+  "lead": "Open points extracted from plan.md (v0.1.0). Team roles, colors, and constraints come from the reusable context.json.",
+  "spec": {
+    "file": "examples/generic-plan/plan.md",
+    "version": "0.1.0",
+    "date": "2026-11-26",
+    "openCount": 4,
+    "unprovableCount": 1
+  },
+  "sourcesBadges": [
+    { "label": "Input", "value": "plan.md only" }
+  ],
+  "keystone": {
+    "id": "OQ-1",
+    "mootOption": "1",
+    "tag": "Sync only",
+    "mootStatus": "not needed for async",
+    "openBanner": "Decide first: Synchronous download vs. asynchronous background job. This determines whether row-cap and timeout limits apply.",
+    "mootBanner": "Async background job selected: synchronous row-limit questions are greyed out, and Platform must be consulted on queue/worker infra."
+  },
+  "groups": [
+    { "id": "core", "title": "Execution & Limits" },
+    { "id": "data", "title": "Data & Format" }
+  ],
+  "topics": {},
+  "questions": [
+    {
+      "id": "OQ-1",
+      "group": "core",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "Synchronous download vs. asynchronous job",
+      "question": "How should the CSV export be generated and delivered to the customer?",
+      "context": "plan.md §3 (OQ-1) and §2 (U-1: 'must feel fast'). No delivery mechanism is specified yet.",
+      "options": [
+        "Synchronous HTTP download directly from the Order History page",
+        "Asynchronous background job that emails a download link when ready"
+      ],
+      "proposal": 0,
+      "reason": "Requires no queue or email infrastructure and matches typical B2C order counts; revisit if exports routinely exceed 5,000 rows.",
+      "raci": { "ARCH": "A", "PO": "R", "BIZ": "C", "PLAT": "C" },
+      "ref": "OQ-1, U-1",
+      "dependsOn": []
+    },
+    {
+      "id": "OQ-2",
+      "group": "core",
+      "topic": null,
+      "keystoneDependent": true,
+      "title": "Maximum rows for synchronous export",
+      "question": "What hard row limit should apply to a single synchronous CSV download?",
+      "context": "plan.md §3 (OQ-2). Needed to turn U-1 ('feel fast') into a testable bound.",
+      "options": [
+        "Up to 5,000 rows (show prompt to narrow date filter above limit)",
+        "Up to 1,000 rows (show prompt to narrow date filter above limit)",
+        "No hard limit (stream response)"
+      ],
+      "proposal": 0,
+      "reason": "5,000 rows serialize in under 500 ms and cover 99% of customer histories without risking gateway timeouts.",
+      "raci": { "PO": "A", "ARCH": "R", "BIZ": "C" },
+      "ref": "OQ-2, U-1",
+      "dependsOn": ["OQ-1"]
+    },
+    {
+      "id": "OQ-3",
+      "group": "data",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "PII fields in exported CSV",
+      "question": "Should customer PII (shipping street, phone number) be included in the CSV?",
+      "context": "plan.md §1 lists order number, date, amount, currency, status. §3 (OQ-3) asks whether shipping address/phone should also be exported.",
+      "options": [
+        "Exclude shipping street and phone number (keep only plan.md §1 columns)",
+        "Include full shipping address and phone number"
+      ],
+      "proposal": 0,
+      "reason": "Follows data minimization (GDPR) and avoids exporting extra PII into local spreadsheets.",
+      "raci": { "BIZ": "A", "PO": "C", "ARCH": "I" },
+      "ref": "OQ-3",
+      "dependsOn": []
+    },
+    {
+      "id": "OQ-4",
+      "group": "data",
+      "topic": null,
+      "keystoneDependent": false,
+      "title": "CSV encoding and delimiter",
+      "question": "Which character encoding and delimiter does our target accounting/Excel setup expect?",
+      "context": "plan.md §3 (OQ-4). Fact question depending on customer/accounting tools.",
+      "options": [
+        "UTF-8 with BOM and semicolon (;) — standard for German/EU Excel",
+        "UTF-8 without BOM and comma (,) — RFC 4180 standard"
+      ],
+      "proposal": null,
+      "reason": "No proposal: fact question — Business/Operations knows which locale and import tools customers use.",
+      "raci": { "BIZ": "AR", "PO": "C", "ARCH": "I" },
+      "ref": "OQ-4",
+      "dependsOn": []
+    }
+  ],
+  "outOfScope": [
+    "Scheduled recurring exports (plan.md §4)",
+    "PDF or XLSX export formats (plan.md §4)"
+  ],
+  "sources": [
+    "examples/generic-plan/plan.md (v0.1.0)",
+    "examples/generic-plan/context.json (shared team context)"
+  ]
+}

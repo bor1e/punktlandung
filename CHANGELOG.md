@@ -1,8 +1,19 @@
 # History of the idea
 
-Newest entry first. Each entry says what changed and which remark of a reader caused the change. The remarks are shortened. They are the important part: each one is a rule in the skill now.
+Newest entry first. Each entry says what changed and why.
 
-## Second version (2026-11-26)
+## 2.0.0 (2026-11-26)
+
+Generalization from a single hardcoded German HTML example into a reusable, open-source **two-layer clarification compiler** for any `plan.md` or feature spec.
+
+- **Two-layer separation (`context.json` + `spec.json`):** Team roles, colors, platform flags, and environment constraints live once in `context.json` (analogous to arc42 §1–2); per-feature open points live in compact `spec.json`.
+- **Generic DE/EN engine (`template/overview.html`):** Zero-dependency single-file HTML template driven purely by `#spec-data` JSON, with optional use-case scenarios, declarative keystone muting (`keystone.mootOption`), role-sync navigation, and one-click AI-Bot JSON export.
+- **Compiler & answer merger (`scripts/build.mjs`, `scripts/merge-answers.mjs`):** Compile `context.json` + `spec.json` into a validated offline HTML file, and merge N returned HTML copies by `A`-decider authority with conflict detection into a Markdown/JSON patch for `plan.md`.
+- **Generic `plan.md` example (`examples/generic-plan/`):** Domain-neutral English walkthrough without use-case tables.
+- **Zero-loss Steuerbox rebuild (`examples/steuerbox/`):** Extracted `context.json` + `spec.json` verbatim from `v1.0.0:example.html` and verified 100% content parity.
+- **Open-source readiness:** Added MIT `LICENSE`, updated `SKILL.md` (`2.0.0`), and documented comparison with `arc42`/`req42`, `MADR`, `Spec Kit`/`OpenSpec`, and `TiddlyWiki`.
+
+## 1.0.0 / Second version (2026-11-26)
 
 The first reader was the person who asked for the page. These were the remarks.
 

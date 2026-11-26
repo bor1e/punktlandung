@@ -12,5 +12,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Validate repository and example.html
+      - name: Validate repository and generated HTMLs
         run: node scripts/validate.mjs
+      - name: Verify reproducible builds
+        run: |
+          node scripts/build.mjs examples/steuerbox/context.json examples/steuerbox/spec.json -o /tmp/example.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/generic-plan/spec.json -o /tmp/open-points.html
+          diff -u example.html /tmp/example.html
+          diff -u examples/generic-plan/open-points.html /tmp/open-points.html
