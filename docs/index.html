@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punktlandung — Live Interactive Demos</title>
+<style>
+:root{--pri:#2b2f3a;--pri-10:#eef0f4;--fg:#1a1a1a;--fg-2:#484848;--fg-3:#6f6f6f;--line:#e6e6e6;--bg:#fbfbfb;--radius:10px}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:var(--bg)}
+.wrap{max-width:960px;margin:0 auto;padding:42px 24px 72px}
+header{margin-bottom:28px}
+h1{margin:0 0 8px;font-size:28px;line-height:1.2}
+.lead{color:var(--fg-2);max-width:720px;margin:0 0 14px}
+.cmd{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;font:13px ui-monospace,Consolas,monospace;color:var(--pri)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:24px 0}
+.card{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s}
+.card:hover{border-color:#b8c0cf;box-shadow:0 6px 18px rgba(43,47,58,.08)}
+.top{display:flex;align-items:center;gap:8px}
+.tag{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--pri-10);color:var(--pri)}
+.tag.feat{background:var(--pri);color:#fff}
+.card h2{margin:4px 0 0;font-size:17px}
+.card p{margin:0;font-size:13.5px;color:var(--fg-2)}
+.meta{margin-top:auto;padding-top:8px;font-size:12px;color:var(--fg-3)}
+.shot{width:100%;border:1px solid var(--line);border-radius:var(--radius);margin:12px 0 24px}
+footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+a.link{color:#1c4fa0;text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Punktlandung — Live Demos</h1>
+<p class="lead"><b>Multiplayer <code>/clarify</code> for non-Git stakeholders.</b> Open any demo below to experience how Business, Product, and Architecture resolve open points offline with a single decider per question, <code>mootWhen</code> branching, and a <code>PKL1:</code> paste-back answer code.</p>
+<div class="cmd">npx github:bor1e/punktlandung init path/to/plan.md</div>
+</header>
+
+<div class="grid">
+<a class="card" href="demos/speckit-sso.html">
+  <div class="top"><span class="tag feat">Featured · EN</span><span class="tag">Spec Kit</span></div>
+  <h2>Enterprise SSO Login</h2>
+  <p>Extracted from 5 <code>[NEEDS CLARIFICATION]</code> markers. Demonstrates two independent <code>mootWhen</code> branches (OIDC vs. SAML, JIT vs. pre-invited).</p>
+  <div class="meta">5 questions · 4 roles · Reused context.json</div>
+</a>
+
+<a class="card" href="demos/generic-plan.html">
+  <div class="top"><span class="tag">EN</span><span class="tag">plan.md</span></div>
+  <h2>CSV Export for Order History</h2>
+  <p>Minimal <code>plan.md</code> without Use Case scenario tables. Shows sync vs. async branching, GDPR/PII ownership, and fact vs. proposal split.</p>
+  <div class="meta">4 questions · 4 roles · Reused context.json</div>
+</a>
+
+<a class="card" href="demos/openspec-webhooks.html">
+  <div class="top"><span class="tag">EN</span><span class="tag">OpenSpec</span></div>
+  <h2>Signed Webhook Retries</h2>
+  <p>Async stakeholder sign-off for an OpenSpec brownfield delta proposal before <code>/opsx:apply</code>, consulting Platform only on queue retention.</p>
+  <div class="meta">3 questions · 4 roles · Reused context.json</div>
+</a>
+
+<a class="card" href="demos/steuerbox.html">
+  <div class="top"><span class="tag">DE</span><span class="tag">Real Case Study</span></div>
+  <h2>Steuerbox Control Actions</h2>
+  <p>Anonymised production feature-set: 22 open points + 5 unprovable statements across 6 roles narrowed down to 9 actual Business decisions.</p>
+  <div class="meta">25 topics · 40 sub-questions · 4 Use Cases · 26 scenarios</div>
+</a>
+</div>
+
+<img class="shot" src="preview.png" alt="Preview of Punktlandung Enterprise SSO overview">
+
+<footer>
+  <span>Zero server · Zero login · Zero npm dependencies</span>
+  <span><a class="link" href="https://github.com/bor1e/punktlandung">View source &amp; docs on GitHub →</a></span>
+</footer>
+</div>
+</body>
+</html>

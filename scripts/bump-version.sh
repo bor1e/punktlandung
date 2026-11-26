@@ -91,8 +91,9 @@ printf '%s\n' "$NEXT" > VERSION
 
 node -e '
 const fs = require("node:fs");
-const p = "skills/open-points-overview/SKILL.md";
 const next = process.argv[1];
+
+const p = "skills/open-points-overview/SKILL.md";
 const content = fs.readFileSync(p, "utf8");
 const updated = content.replace(/^version:\s*.*$/m, "version: " + next);
 if (updated === content && !content.includes("version: " + next)) {
@@ -100,12 +101,18 @@ if (updated === content && !content.includes("version: " + next)) {
   process.exit(1);
 }
 fs.writeFileSync(p, updated, "utf8");
+
+if (fs.existsSync("package.json")) {
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  pkg.version = next;
+  fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n", "utf8");
+}
 ' "$NEXT"
 
 node scripts/validate.mjs >/dev/null
 
 if [ "$DO_COMMIT" = true ]; then
-  git add VERSION skills/open-points-overview/SKILL.md
+  git add VERSION skills/open-points-overview/SKILL.md package.json
   git commit -m "chore(release): bump version to v${NEXT} [skip ci]"
 fi
 

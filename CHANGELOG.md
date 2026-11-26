@@ -2,6 +2,15 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.3.0 (2026-11-26)
+
+Launch & distribution polish:
+
+- **Live GitHub Pages demos & visual preview:** Added `docs/index.html`, `.github/workflows/pages.yml`, and `docs/preview.png` so anyone can test all 4 examples live in the browser before cloning.
+- **Zero-attachment `PKL1:` paste-back code:** Added 1-click **Copy answer code** (`PKL1:<base64url>`) in `template/overview.html` and `--code` / `.txt` extraction in `scripts/merge-answers.mjs` so replies work even when corporate Outlook blocks `.html` attachments.
+- **Zero-dependency `npx` CLI:** Added `package.json` (`dependencies: {}`, `bin.punktlandung`) and `scripts/cli.mjs` (`npx github:bor1e/punktlandung init|build|merge|validate`), with `package.json` version synced in `validate.mjs` and `bump-version.sh`.
+- **Cross-agent adoption pack:** Added `AGENTS.md`, `CLAUDE.md`, and `.github/prompts/clarify-plan.prompt.md`, and reframed `README.md` around **"Multiplayer `/clarify` for non-Git stakeholders"** with the English Spec Kit example featured first.
+
 ## 2.2.0 (2026-11-26)
 
 Hardened from a 5-perspective adversarial review (Spec Kit, OpenSpec, Copilot, Over-Engineering, and Business Ops):

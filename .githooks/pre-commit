@@ -23,7 +23,7 @@ done <<< "$STAGED"
 
 if [ "$VERSION_STAGED" = false ] && [ "$CONTENT_STAGED" = true ]; then
   ./scripts/bump-version.sh patch >/dev/null
-  git add VERSION skills/open-points-overview/SKILL.md
+  git add VERSION skills/open-points-overview/SKILL.md package.json
 fi
 
 node scripts/validate.mjs

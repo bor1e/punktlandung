@@ -1,7 +1,7 @@
 ---
 name: open-points-overview
 description: "Turns the open points of any plan.md, Spec Kit spec, or OpenSpec proposal into one self-contained HTML page on which each party selects answers and sends them back. Uses a reusable team context.json plus a per-plan spec.json. Triggers on: 'overview for the business department', 'open questions page', 'who decides what', 'RACI for the open points', 'make the spec ready for implementation'."
-version: 2.2.0
+version: 2.3.0
 ---
 
 # Open Points Overview (Two-Layer Model)

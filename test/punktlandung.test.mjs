@@ -139,6 +139,32 @@ describe('merge-answers.mjs', () => {
       const copilotOut = execFileSync('node', [path.join(ROOT, 'scripts', 'merge-answers.mjs'), '--copilot-prompt', f1, f2], { encoding: 'utf8' });
       assert.ok(copilotOut.includes('## Resolved Decisions to Apply'));
       assert.ok(copilotOut.includes('OQ-2'));
+
+      // Also verify PKL1: paste-back code (direct --code and embedded in .txt email reply)
+      const pklPayload = { v: 1, id: 'order-csv-export', role: 'BIZ', name: 'Alice', a: { 'OQ-4': { o: '0', t: '', n: 'German Excel' } } };
+      const pklToken = 'PKL1:' + Buffer.from(JSON.stringify(pklPayload), 'utf8').toString('base64url');
+      const replyTxt = path.join(tmpDir, 'email-reply.txt');
+      fs.writeFileSync(replyTxt, `Hi team, here are my answers:\n\n${pklToken}\n\nThanks!`);
+
+      const mergedCode = JSON.parse(execFileSync('node', [
+        path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+        '--json',
+        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+        replyTxt
+      ], { encoding: 'utf8' }));
+      assert.equal(mergedCode.summary.resolved, 1);
+      assert.equal(mergedCode.resolved[0].id, 'OQ-4');
+      assert.equal(mergedCode.resolved[0].note, 'German Excel');
+
+      const directMerged = JSON.parse(execFileSync('node', [
+        path.join(ROOT, 'scripts', 'cli.mjs'),
+        'merge',
+        '--json',
+        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+        '--code',
+        pklToken
+      ], { encoding: 'utf8' }));
+      assert.equal(directMerged.summary.resolved, 1);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

@@ -1,0 +1,42 @@
+{
+  "name": "punktlandung",
+  "version": "2.3.0",
+  "description": "Multiplayer /clarify for non-Git stakeholders: turn open points in any plan.md, Spec Kit, or OpenSpec into one offline self-saving HTML page.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "punktlandung": "./scripts/cli.mjs"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test"
+  },
+  "files": [
+    "scripts/",
+    "template/",
+    "schema/",
+    "skills/",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bor1e/punktlandung.git"
+  },
+  "homepage": "https://bor1e.github.io/punktlandung/",
+  "keywords": [
+    "spec-driven-development",
+    "requirements",
+    "raci",
+    "ai-agents",
+    "speckit",
+    "openspec",
+    "arc42",
+    "single-file-html"
+  ],
+  "dependencies": {}
+}

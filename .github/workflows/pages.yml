@@ -1,0 +1,47 @@
+name: Deploy Live Demos to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build static Pages bundle
+        run: |
+          mkdir -p _site/demos
+          cp docs/index.html _site/index.html
+          if [ -f docs/preview.png ]; then cp docs/preview.png _site/preview.png; fi
+          node scripts/build.mjs examples/generic-plan/context.json examples/speckit-sso/spec.json -o _site/demos/speckit-sso.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/generic-plan/spec.json -o _site/demos/generic-plan.html
+          node scripts/build.mjs examples/generic-plan/context.json examples/openspec-webhooks/spec.json -o _site/demos/openspec-webhooks.html
+          node scripts/build.mjs examples/steuerbox/context.json examples/steuerbox/spec.json -o _site/demos/steuerbox.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -171,7 +171,7 @@ function runCli() {
 
   const versionPath = path.join(root, 'VERSION');
   const skillPath = path.join(root, 'skills', 'open-points-overview', 'SKILL.md');
-  const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'template/overview.html'];
+  const requiredFiles = ['README.md', 'CHANGELOG.md', 'LICENSE', 'AGENTS.md', 'CLAUDE.md', 'package.json', 'template/overview.html'];
   const schemaFiles = ['schema/context.schema.json', 'schema/spec.schema.json'];
 
   let version = '';
@@ -205,6 +205,18 @@ function runCli() {
   for (const rel of requiredFiles) {
     if (!fs.existsSync(path.join(root, rel))) {
       errors.push(`Missing ${rel}`);
+    }
+  }
+
+  const pkgPath = path.join(root, 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (version && pkg.version !== version) {
+        errors.push(`Version mismatch: VERSION is "${version}" but package.json has "${pkg.version}"`);
+      }
+    } catch (err) {
+      errors.push(`Invalid JSON in package.json: ${err.message}`);
     }
   }
 

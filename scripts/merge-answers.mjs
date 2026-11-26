@@ -7,30 +7,75 @@ const args = process.argv.slice(2);
 let asJson = false;
 let asCopilot = false;
 const files = [];
+const directCodes = [];
 
-for (const a of args) {
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
   if (a === '--json') asJson = true;
   else if (a === '--copilot-prompt') asCopilot = true;
-  else files.push(a);
+  else if (a === '--code') {
+    const val = args[++i];
+    if (!val) {
+      console.error('ERROR: --code requires a PKL1:... token');
+      process.exit(1);
+    }
+    directCodes.push(val.trim());
+  } else files.push(a);
 }
 
 if (files.length === 0) {
-  console.error('Usage: node scripts/merge-answers.mjs [--json|--copilot-prompt] <returned-1.html> [returned-2.html ...]');
+  console.error('Usage: node scripts/merge-answers.mjs [--json|--copilot-prompt] <open-points.html> [more.html|reply.txt ...] [--code "PKL1:..."]');
   process.exit(1);
 }
 
-const loaded = files.map((f) => {
-  const html = fs.readFileSync(path.resolve(process.cwd(), f), 'utf8');
-  const specData = extractJsonIsland(html, 'spec-data');
-  const saved = extractJsonIsland(html, 'saved') || {};
-  if (!specData) {
-    console.error(`ERROR: ${f} missing #spec-data`);
-    process.exit(1);
+function decodeAnswerCode(token, sourceLabel) {
+  const b64url = token.replace(/^PKL1:/, '').trim();
+  const obj = JSON.parse(Buffer.from(b64url, 'base64url').toString('utf8'));
+  return {
+    file: sourceLabel,
+    specData: null,
+    state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
+  };
+}
+
+const loaded = [];
+let baseSpecData = null;
+
+for (const f of files) {
+  const raw = fs.readFileSync(path.resolve(process.cwd(), f), 'utf8');
+  if (f.toLowerCase().endsWith('.html') || f.toLowerCase().endsWith('.htm')) {
+    const specData = extractJsonIsland(raw, 'spec-data');
+    const saved = extractJsonIsland(raw, 'saved') || {};
+    if (!specData) {
+      console.error(`ERROR: ${f} missing #spec-data`);
+      process.exit(1);
+    }
+    if (!baseSpecData) baseSpecData = specData;
+    loaded.push({ file: f, specData, state: saved.S || { role: '', name: '', a: {} } });
+  } else {
+    const matches = raw.match(/PKL1:[A-Za-z0-9_-]+/g) || [];
+    if (matches.length === 0) {
+      console.error(`ERROR: ${f} contains no PKL1: answer code`);
+      process.exit(1);
+    }
+    matches.forEach((tok, idx) => {
+      const dec = decodeAnswerCode(tok, `${f}#${idx + 1}`);
+      loaded.push(dec);
+    });
   }
-  return { file: f, specData, state: saved.S || { role: '', name: '', a: {} } };
+}
+
+directCodes.forEach((tok, idx) => {
+  const dec = decodeAnswerCode(tok, `code#${idx + 1}`);
+  loaded.push(dec);
 });
 
-const { context, spec } = loaded[0].specData;
+if (!baseSpecData) {
+  console.error('ERROR: at least one .html file with #spec-data is required to resolve question definitions.');
+  process.exit(1);
+}
+
+const { context, spec } = baseSpecData;
 const partiesById = new Map((context.parties || []).map((p) => [p.id, p]));
 const questions = spec.questions || [];
 
