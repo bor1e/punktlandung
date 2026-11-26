@@ -810,6 +810,185 @@ describe('merge-answers.mjs', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('clears stale localStorage draft answers on changed options even when spec.version is unchanged', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const specData = structuredClone(extractJsonIsland(html, 'spec-data'));
+    const savedData = extractJsonIsland(html, 'saved');
+    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+
+    const fnv1a = (str) => {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      return h.toString(16).padStart(8, '0');
+    };
+    const key = `punktlandung:${specData.spec.id}:${specData.spec.spec.version}:draft`;
+    const storage = new Map();
+    const oq1Hash = fnv1a(JSON.stringify(specData.spec.questions[0].options));
+    storage.set(key, JSON.stringify({
+      role: 'PO',
+      name: 'Alice',
+      specHash: 'oldhash00',
+      a: {
+        'OQ-1': { o: '0', t: '', n: 'still valid', oh: oq1Hash },
+        'OQ-2': { o: '1', t: '', n: 'stale option', oh: 'deadbeef' }
+      }
+    }));
+
+    const makeEl = (id) => ({
+      id,
+      innerHTML: '',
+      textContent: id === 'spec-data' ? JSON.stringify(specData) : id === 'saved' ? JSON.stringify(savedData) : '',
+      value: '',
+      classList: { toggle: () => {}, contains: () => false },
+      addEventListener: () => {},
+      querySelector: () => null,
+      querySelectorAll: () => []
+    });
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+    const listeners = {};
+    els.btnCopyCode.addEventListener = (ev, fn) => { (listeners[`btnCopyCode:${ev}`] ||= []).push(fn); };
+    let copied = '';
+    const context = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: () => {},
+      confirm: () => true,
+      location: { hash: '#ueberblick' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) },
+      navigator: { clipboard: { writeText: (s) => { copied = s; return Promise.resolve(); } } },
+      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: () => {},
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('1 draft answer(s) were cleared'));
+    listeners['btnCopyCode:click'].forEach((fn) => fn.call(els.btnCopyCode, {}));
+    const decoded = JSON.parse(Buffer.from(copied.replace(/^PKL1:|:PKL$/g, ''), 'base64url').toString('utf8'));
+    assert.ok(decoded.a['OQ-1'], 'valid hashed answer survives');
+    assert.equal(decoded.a['OQ-2'], undefined, 'stale option answer is discarded');
+
+    // Legacy draft with no per-answer hashes & missing specHash is also cleared on option edit
+    storage.set(key, JSON.stringify({ role: 'PO', name: 'Bob', a: { 'OQ-1': { o: '0', t: '', n: 'legacy' } } }));
+    els.main.innerHTML = '';
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('1 draft answer(s) were cleared'));
+  });
+
+  it('extracts German real-spec conventions in init-case (> Version:, Offene Stellen, TODO(...), Nicht nachweisbar)', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-de-'));
+    try {
+      const planPath = path.join(tmpDir, 'feature-set.md');
+      const outDir = path.join(tmpDir, 'out');
+      fs.writeFileSync(planPath, [
+        '# Feature-Set Steuerbox',
+        '',
+        '> Version: 0.2.0',
+        '',
+        '## Offene Stellen',
+        '- TODO(new-1): Soll ein Entwurf automatisch verfallen?',
+        '- Wie hoch ist das Export-Limit?',
+        '',
+        '## Fachlicher Ablauf',
+        'Im Fehlerfall greift TODO(new-2): Fehlercode im CSV-Header protokollieren.',
+        '',
+        '**Nicht nachweisbar:** Die bestehende Schnittstelle liefert immer UTF-8.',
+        '',
+        '**Nicht nachweisbar:**',
+        '- Antwortzeit unter 200ms unter Volllast'
+      ].join('\n'));
+      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), planPath, '--out-dir', outDir, '--lang', 'de'], { encoding: 'utf8' });
+      const spec = JSON.parse(fs.readFileSync(path.join(outDir, 'spec.json'), 'utf8'));
+      assert.equal(spec.spec.version, '0.2.0');
+      assert.equal(spec.spec.openCount, 3);
+      assert.equal(spec.spec.unprovableCount, 2);
+      assert.equal(spec.questions.length, 5);
+      assert.ok(spec.questions.some((q) => q.id === 'TODO-new-1'));
+      assert.ok(spec.questions.some((q) => q.id === 'TODO-new-2'));
+      assert.ok(spec.questions.some((q) => q.id === 'U-1'));
+      assert.ok(spec.questions.some((q) => q.id === 'U-2'));
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('validates and renders parties[].contact and inline base64 comparison images cleanly', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const payload = structuredClone(extractJsonIsland(html, 'spec-data'));
+    payload.context.parties[0].contact = 'Clara Compliance <clara@example.com>';
+    payload.spec.comparison = {
+      heading: 'Mockups',
+      cards: [{
+        title: 'Variant A',
+        blocks: [{
+          type: 'img',
+          src: 'data:image/png;base64,iVBORw0KGgo=',
+          alt: 'Wireframe A',
+          caption: 'Offline PNG preview'
+        }]
+      }]
+    };
+    assert.deepEqual(validatePayload(payload, 'contact-img-ok').errs, []);
+
+    const badImg = structuredClone(payload);
+    badImg.spec.comparison.cards[0].blocks[0].src = 'https://evil.example/track.png';
+    const { errs } = validatePayload(badImg, 'bad-img');
+    assert.ok(errs.some((e) => e.includes('data:image/')));
+
+    const savedData = extractJsonIsland(html, 'saved');
+    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+    const makeEl = (id) => ({
+      id,
+      innerHTML: '',
+      textContent: id === 'spec-data' ? JSON.stringify(payload) : id === 'saved' ? JSON.stringify(savedData) : '',
+      value: '',
+      classList: { toggle: () => {}, contains: () => false },
+      addEventListener: () => {},
+      querySelector: () => null,
+      querySelectorAll: () => []
+    });
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+    const ctx = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: () => {},
+      confirm: () => true,
+      location: { hash: '#ueberblick' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: () => null, setItem: () => {} },
+      navigator: { clipboard: { writeText: () => Promise.resolve() } },
+      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: () => {},
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+    vm.runInNewContext(appScript, ctx);
+    assert.ok(els.main.innerHTML.includes('<figure class="wfimg"><img src="data:image/png;base64,iVBORw0KGgo=" alt="Wireframe A"><figcaption>Offline PNG preview</figcaption></figure>'));
+
+    ctx.location = { hash: '#raci' };
+    vm.runInNewContext(appScript, ctx);
+    assert.ok(els.main.innerHTML.includes('Clara Compliance &lt;clara@example.com&gt;'));
+  });
 });
 
 describe('Spec Kit extension manifest', () => {

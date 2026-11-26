@@ -1,7 +1,7 @@
 ---
 name: open-points-overview
 description: "Turns the open points of any plan.md, Spec Kit spec, or OpenSpec proposal into one self-contained HTML page on which each party selects answers and sends them back. Uses a reusable team context.json plus a per-plan spec.json. Triggers on: 'overview for the business department', 'open questions page', 'who decides what', 'RACI for the open points', 'make the spec ready for implementation'."
-version: 2.6.0
+version: 2.7.0
 ---
 
 # Open Points Overview (Two-Layer Model)
@@ -58,6 +58,7 @@ Trigger this protocol when:
    - Give two to four complete, selectable `options`. ("Other" with a text field and an optional note are added automatically by the template.)
    - Add `context` naming what the sources say, with the source. Do not add what no source says.
    - Optionally attach `"links": [{ "label": "...", "url": "https://..." }]` on top-level `spec`, `groups[]`, or `questions[]` to point to Figma, Jira, Confluence, GitHub, GitLab, or Azure DevOps (`http://`/`https://` only; platform badges auto-detect by URL with optional `kind` override). Keep links as backup evidence only — never use `<iframe>` embeds, and keep every question answerable for stakeholders who lack tool access.
+   - Optional `"contact"` strings on `context.parties[]` render beneath the role in `#raci` (strip them in anonymised copies). For inline screenshots inside `comparison.cards[].blocks`, use `{ "type": "img", "src": "data:image/png;base64,...", "alt": "...", "caption": "..." }` so the file remains 100% offline.
    - If one open point contains more than one question, divide it into sub-questions sharing the same `"topic"` ID and register the topic title in `spec.topics`.
 
 5. **Recommend, with a reason, where a recommendation is possible.**

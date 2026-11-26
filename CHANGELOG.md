@@ -2,6 +2,15 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.7.0 (2026-11-26)
+
+Real-world German spec extraction, stale `localStorage` draft protection, named contacts, and offline comparison screenshots:
+
+- **Stale `localStorage` draft protection (`template/overview.html`):** Embeds `specHash` and per-question `oh` option hashes in `localStorage` drafts and `#saved`; automatically discards stale draft answers whose question ID or options changed even when `spec.version` was not bumped, and surfaces an explicit warning banner (`staleCleared`) instead of silently carrying over wrong selections.
+- **Named party contacts (`schema/context.schema.json`, `scripts/validate.mjs`, `template/overview.html`):** Added optional `parties[].contact` (validated non-empty, rendered cleanly below `role` on `#raci`, omitted in anonymised copies).
+- **Offline comparison screenshots (`template/overview.html`, `scripts/validate.mjs`):** Added `{ "type": "img", "src": "data:image/...;base64,...", "alt?", "caption?" }` support in `comparison.cards[].blocks` with validator enforcement forbidding remote image URLs.
+- **German & real-spec extraction (`scripts/init-case.mjs`):** Supports `> Version:` blockquote metadata, `Offene Stellen` headings, inline/bullet `TODO(...)` markers, bold `**Nicht nachweisbar:**` / `**Offene Stellen:**` markers (inline or bullet lists), and accurate `openCount` / `unprovableCount` tallies.
+
 ## 2.6.0 (2026-11-26)
 
 Clickable external reference links for Figma, Jira, Confluence, GitHub, GitLab, and Azure DevOps:

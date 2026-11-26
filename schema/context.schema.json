@@ -51,6 +51,11 @@
           },
           "role": { "type": "string", "minLength": 1 },
           "job": { "type": "string", "minLength": 1 },
+          "contact": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional named contact(s) for this party (omitted in anonymised copies)."
+          },
           "consultWhen": {
             "type": "string",
             "minLength": 1,

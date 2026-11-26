@@ -227,6 +227,9 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     if (p.consultWhen !== undefined && (typeof p.consultWhen !== 'string' || !p.consultWhen.trim())) {
       errs.push(`${label}: party "${p.id}" consultWhen must be a non-empty string`);
     }
+    if (p.contact !== undefined && (typeof p.contact !== 'string' || !p.contact.trim())) {
+      errs.push(`${label}: party "${p.id}" contact must be a non-empty string`);
+    }
   }
 
   if (!Array.isArray(spec.groups) || spec.groups.length === 0) {
@@ -344,6 +347,17 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     if (q && typeof q === 'object') {
       validateLinks(q.links, `${label}: question "${q.id || '?'}"`, errs);
     }
+  }
+  if (spec.comparison && Array.isArray(spec.comparison.cards)) {
+    spec.comparison.cards.forEach((card, ci) => {
+      (card?.blocks || []).forEach((b, bi) => {
+        if (b && b.type === 'img') {
+          if (typeof b.src !== 'string' || !/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=\s]+$/i.test(b.src.trim())) {
+            errs.push(`${label}: comparison.cards[${ci}].blocks[${bi}] image src must be inline data:image/...;base64,... to keep HTML offline`);
+          }
+        }
+      });
+    });
   }
 
   const openCount = spec.spec?.openCount;

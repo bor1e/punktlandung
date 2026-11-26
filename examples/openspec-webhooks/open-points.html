@@ -110,6 +110,7 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .wfb span{border:1px solid #bbb;border-radius:5px;padding:2px 10px;font-size:12.5px;color:var(--fg-2);background:#fff}
 .wfb span.b{background:var(--pri);border-color:var(--pri);color:#fff}
 .wft{border:1px dashed #bbb;border-radius:6px;padding:10px;font-size:12.5px;color:var(--fg-2);background:var(--screen);margin:6px 0}
+.wfimg{margin:8px 0}.wfimg img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px;display:block}.wfimg figcaption{font-size:12px;color:var(--fg-3);margin-top:4px}
 textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,Consolas,monospace;background:#fff}
 input.name{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;min-width:280px;background:#fff}
 ul.plain,ol.plain{margin:6px 0;padding-left:20px}ul.plain li,ol.plain li{margin:4px 0}
@@ -145,6 +146,7 @@ var T={
   saveBtn:'Mit Antworten speichern', copyCodeBtn:'Antwort-Code kopieren', emailBtn:'Per E-Mail senden',
   codeHint:'Antwort-Code kopiert: einfach in E-Mail, Teams oder Slack einfügen (kein Anhang nötig).',
   roleHint:'Hinweis: Bitte links Ihre Rolle wählen, damit Ihre Entscheidungen eindeutig zugeordnet werden.',
+  staleCleared:function(n){return n+' Entwurfsantwort(en) wurden verworfen, weil sich die Optionen dieser Frage seit dem letzten Öffnen geändert haben.'},
   savedDraft:function(hh){return 'Zwischenstand in diesem Browser gesichert, '+hh+' Uhr. Zum Weitergeben: „Mit Antworten speichern“.'},
   noStorage:'Dieser Browser sichert keinen Zwischenstand. Bitte „Mit Antworten speichern“ nutzen.',
   savedFile:function(fn){return 'Datei „'+fn+'“ erzeugt und gespeichert.'},
@@ -210,6 +212,7 @@ var T={
   saveBtn:'Save with answers', copyCodeBtn:'Copy answer code', emailBtn:'Send via email',
   codeHint:'Answer code copied: paste it into an email, Teams, or Slack reply (no file attachment needed).',
   roleHint:'Tip: Select your role on the left so your decisions are attributed accurately.',
+  staleCleared:function(n){return n+' draft answer(s) were cleared because the question options changed since your last visit.'},
   savedDraft:function(hh){return 'Draft saved in this browser at '+hh+'. To send back: click "Save with answers".'},
   noStorage:'This browser blocks local storage. Please use "Save with answers".',
   savedFile:function(fn){return 'File "'+fn+'" saved with all embedded answers.'},
@@ -275,7 +278,7 @@ var T={
 /* ---------- Normalize Context & Spec ---------- */
 var P={}, ORDER=[];
 (CTX.parties||[]).forEach(function(p){
- P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,consultWhen:p.consultWhen||'',isPlatform:!!p.isPlatform};
+ P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,contact:p.contact||'',consultWhen:p.consultWhen||'',isPlatform:!!p.isPlatform};
  ORDER.push(p.id);
 });
 var KS=SPEC.keystone||null;
@@ -318,11 +321,24 @@ document.getElementById('btnSave').textContent=T.saveBtn;
 document.getElementById('btnCopyCode').textContent=T.copyCodeBtn;
 
 /* ---------- State & TiddlyWiki Saver UX ---------- */
+function fnv1a(str){var h=0x811c9dc5;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return h.toString(16).padStart(8,'0')}
+function optHash(q){return fnv1a(JSON.stringify(q.o||[]))}
+var SPEC_HASH=fnv1a(JSON.stringify(Q.map(function(q){return [q.id,q.o]})));
 var EMB={};try{EMB=JSON.parse(document.getElementById('saved').textContent||'{}')}catch(e){}
 var FILE_ID=EMB.id||'draft', KEY='punktlandung:'+(SPEC.id||'spec')+':'+SPEC_VER+':'+FILE_ID;
 var S=EMB.S||{role:'',name:'',a:{}};
-try{var loc=JSON.parse(localStorage.getItem(KEY)||'null');if(loc&&loc.a){S=loc}}catch(e){}
+var loadedSpecHash=EMB.specHash||'';
+try{var loc=JSON.parse(localStorage.getItem(KEY)||'null');if(loc&&loc.a){S=loc;loadedSpecHash=loc.specHash||''}}catch(e){}
 if(S.role&&!P[S.role]){S.role=''}
+var droppedStale=0;
+if(S.a&&typeof S.a==='object'){
+ Object.keys(S.a).forEach(function(id){
+  var q=QI[id],a=S.a[id];
+  var ok=!!q&&(a&&a.oh?a.oh===optHash(q):loadedSpecHash===SPEC_HASH);
+  if(!ok){delete S.a[id];droppedStale++}
+ });
+}else{S.a={}}
+if(droppedStale>0){try{localStorage.setItem(KEY,JSON.stringify({role:S.role||'',name:S.name||'',a:S.a,specHash:SPEC_HASH}))}catch(e){}}
 var F={p:S.role,open:false,norec:false};
 var main=document.getElementById('main'),nav=document.getElementById('nav'),roleSel=document.getElementById('role');
 var dirty=false, fileHandle=null;
@@ -335,7 +351,8 @@ function markDirty(v){dirty=!!v;syncDirtyButtons()}
 window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
 
 function persist(){
- var ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
+ var payload={role:S.role||'',name:S.name||'',a:S.a||{},specHash:SPEC_HASH};
+ var ok=true;try{localStorage.setItem(KEY,JSON.stringify(payload))}catch(e){ok=false}
  var t=new Date(),hh=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
  var msg=ok?T.savedDraft(hh):T.noStorage;
  if(!S.role&&count(isDone)>0){msg+=' '+T.roleHint}
@@ -434,6 +451,7 @@ function miniRow(q){
  return '<tr><td><a class="sec" href="#fragen:'+h(q.id)+'">'+h(q.id)+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td><td>'+pchip(decider(q))+'</td><td>'+h(names(q,'R'))+'</td><td>'+statusChip(q)+'</td></tr>';
 }
 function standChip(c){return c==='b'?'<span class="p ok">'+T.standBuilt+'</span>':c==='n'?'<span class="p pri">'+T.standNew+'</span>':'<span class="p warn">'+T.standCond+'</span>'}
+function safeDataImg(u){var s=String(u||'').trim();return /^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=\s]+$/i.test(s)?s:''}
 function renderComparison(comp){
  if(!comp||!comp.cards||!comp.cards.length){return ''}
  var s='<h2>'+h(comp.heading)+'</h2>';
@@ -446,6 +464,9 @@ function renderComparison(comp){
     s+='<div class="wfb">'+(b.items||[]).map(function(it){return '<span'+(it.primary?' class="b"':'')+'>'+h(it.text)+'</span>'}).join('')+'</div>';
    }else if(b.type==='box'){
     s+='<div class="wft">'+(b.lines||[]).map(h).join('<br>')+'</div>';
+   }else if(b.type==='img'){
+    var imgSrc=safeDataImg(b.src);
+    if(imgSrc){s+='<figure class="wfimg"><img src="'+h(imgSrc)+'" alt="'+h(b.alt||'')+'">'+(b.caption?'<figcaption>'+h(b.caption)+'</figcaption>':'')+'</figure>'}
    }
   });
   s+='</div>';
@@ -462,6 +483,7 @@ V.ueberblick=function(){
  var tpOpen=ALLTP.filter(function(t){return t.qs.some(isOpen)}).length;
  var norec=Q.filter(function(q){return q.rec==null}),norecOpen=norec.filter(isOpen).length;
  var s='<h1>'+h(SPEC.title)+'</h1>';
+ if(droppedStale>0){s+='<div class="banner">⚠ <span>'+h(T.staleCleared(droppedStale))+'</span></div>'}
  if(SPEC.lead){s+='<p class="lead-in">'+h(SPEC.lead)+'</p>'}
  s+='<div class="sources"><span class="src"><b>'+T.srcBasis+'</b>'+h(SPEC_FILE)+', '+T.srcVersion+' '+h(SPEC_VER)+'</span>';
  if(SPEC_DATE){s+='<span class="src"><b>'+T.srcDate+'</b>'+h(SPEC_DATE)+'</span>'}
@@ -534,6 +556,7 @@ UC.forEach(function(u){V[u.id]=function(){return ucView(u)}});
 
 V.fragen=function(){
  var s='<h1>'+T.qTitle+'</h1><p class="lead-in">'+T.qLead+'</p>';
+ if(droppedStale>0){s+='<div class="banner">⚠ <span>'+h(T.staleCleared(droppedStale))+'</span></div>'}
  s+='<div class="tools"><button class="chip'+(F.p===''?' on':'')+'" data-p="">'+T.filterAll+' ('+Q.length+')</button>';
  ORDER.forEach(function(p){var n=count(function(q){return mine(q,p)});if(n){s+='<button class="chip'+(F.p===p?' on':'')+'" data-p="'+h(p)+'"><i style="background:'+h(P[p].c)+'"></i>'+h(P[p].k)+' ('+n+')</button>'}});
  s+='</div><div class="tools"><button class="chip'+(F.open?' on':'')+'" data-open>'+T.filterOpen+'</button><button class="chip'+(F.norec?' on':'')+'" data-norec>'+T.filterNorec+' ('+count(function(q){return q.rec==null})+')</button><button class="btn sec2" type="button" data-recs>'+T.acceptRecs+'</button></div>';
@@ -567,7 +590,7 @@ V.raci=function(){
   });
  });
  s+='</table></div>';
- s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td><td>'+h(P[p].job)+(P[p].consultWhen?'<div class="small" style="margin-top:4px"><b>'+T.consultWhenLabel+':</b> '+h(P[p].consultWhen)+'</div>':'')+'</td></tr>'}).join('')+'</table></div>';
+ s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+(P[p].contact?'<div class="small">'+h(P[p].contact)+'</div>':'')+'</td><td>'+h(P[p].job)+(P[p].consultWhen?'<div class="small" style="margin-top:4px"><b>'+T.consultWhenLabel+':</b> '+h(P[p].consultWhen)+'</div>':'')+'</td></tr>'}).join('')+'</table></div>';
  if(SPEC.extraRolesNote){s+='<p class="small">'+h(SPEC.extraRolesNote)+'</p>'}
  if(CTX.principles&&CTX.principles.length){
   s+='<h2>'+T.principlesTitle+'</h2><div class="panel"><ol class="plain">'+CTX.principles.map(function(c){return '<li>'+h(c)+'</li>'}).join('')+'</ol></div>';
@@ -584,14 +607,12 @@ V.raci=function(){
  return s;
 };
 
-function fnv1a(str){var h=0x811c9dc5;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return h.toString(16).padStart(8,'0')}
-function optHash(q){return fnv1a(JSON.stringify(q.o||[]))}
 function stampedAnswers(){
  var out={};
  Object.keys(S.a||{}).forEach(function(id){
   var a=S.a[id],q=QI[id];
   if(!a||a.o===''||!q){return}
-  out[id]={o:a.o,t:a.t||'',n:a.n||'',oh:optHash(q)};
+  out[id]={o:a.o,t:a.t||'',n:a.n||'',oh:a.oh||optHash(q)};
  });
  return out;
 }
@@ -679,7 +700,7 @@ function refreshCard(card,q){
  card.querySelectorAll('.opt').forEach(function(l){var r=l.querySelector('input[type=radio]');l.classList.toggle('sel',r.checked)});
  var tp=card.closest('.tp');if(tp){tp.querySelector('[data-tpst]').textContent=tpState(tp.getAttribute('data-tp'))}
 }
-function setAns(id,patch){var a=ans(id);for(var k in patch){a[k]=patch[k]}S.a[id]=a;markDirty(true);persist()}
+function setAns(id,patch){var a=ans(id);for(var k in patch){a[k]=patch[k]}if(QI[id]){a.oh=optHash(QI[id])}S.a[id]=a;markDirty(true);persist()}
 function keepScroll(){var y=window.scrollY;render();window.scrollTo(0,y)}
 function copyStr(str,btn){
  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(str).then(function(){btn.textContent=T.copied},function(){fallbackCopy(str,btn)});return}
@@ -736,7 +757,7 @@ async function saveHtml(){
  var clone=document.documentElement.cloneNode(true);
  ['#main','#nav','#role','#saveState'].forEach(function(sel){clone.querySelector(sel).innerHTML=''});
  clone.querySelectorAll('.dirty').forEach(function(el){el.classList.remove('dirty')});
- clone.querySelector('#saved').textContent=JSON.stringify({id:'f'+d.getTime().toString(36),at:d.toISOString(),specId:SPEC.id||'spec',specVersion:SPEC_VER,S:{role:S.role||'',name:S.name||'',a:stampedAnswers()}}).replace(/</g,'\\u003c');
+ clone.querySelector('#saved').textContent=JSON.stringify({id:'f'+d.getTime().toString(36),at:d.toISOString(),specId:SPEC.id||'spec',specVersion:SPEC_VER,specHash:SPEC_HASH,S:{role:S.role||'',name:S.name||'',a:stampedAnswers()}}).replace(/</g,'\\u003c');
  var htmlOut='<!doctype html>\n'+clone.outerHTML;
  var who=(S.name||(S.role?P[S.role].k:'')).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'answers';
  var prefix=(SPEC.id||'open-points').toLowerCase().replace(/[^a-z0-9-]+/g,'-');
