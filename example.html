@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Steuerbox · Übersicht der offenen Punkte</title>
+<style>
+:root{--pri:#2b2f3a;--pri-90:#3d4250;--pri-10:#eef0f4;--pri-20:#d9dde6;--fg:#1a1a1a;--fg-2:#484848;--fg-3:#6f6f6f;
+--line:#e6e6e6;--soft:#f3f3f3;--screen:#fbfbfb;
+--ok:#007b3e;--ok-bg:#e3f4ea;--warn:#8a4b00;--warn-bg:#fff1dc;--no:#b80515;--no-bg:#fbe7e8;--ne:#484848;--ne-bg:#efefef;
+--radius:10px}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:var(--screen)}
+a{color:#1c4fa0;text-decoration:none}a:hover{text-decoration:underline}
+.app{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow:auto;background:#fff;border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 16px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.brand b{display:block;font-size:15px}.brand span{font-size:12px;color:var(--fg-3)}
+.role{display:block;margin:0 8px 6px;font-size:12px;color:var(--fg-3)}
+.role select{display:block;width:100%;margin-top:4px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--fg)}
+.side .group{margin:16px 8px 6px;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3)}
+.side nav a{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:8px;color:var(--fg);font-size:14px;line-height:1.35}
+.side nav a:hover{background:var(--soft);text-decoration:none}.side nav a.active{background:var(--pri-10);font-weight:600}
+.cnt{margin-left:auto;font-size:11.5px;min-width:22px;text-align:center;border-radius:20px;padding:1px 6px;background:var(--soft);color:var(--fg-2);font-weight:400;flex:none}
+.cnt.warn{background:var(--warn-bg);color:var(--warn)}.cnt.ok{background:var(--ok-bg);color:var(--ok)}
+.savebox{margin-top:auto;padding:14px 8px 0;border-top:1px solid var(--line);font-size:12px;color:var(--fg-3)}
+main{padding:28px 36px 80px;max-width:1240px;width:100%}
+.crumb{font-size:12.5px;color:var(--fg-3);margin-bottom:6px}
+h1{font-size:26px;line-height:1.25;margin:0 0 6px;font-weight:650}h2{font-size:18px;margin:32px 0 10px;font-weight:650}
+h3{font-size:15px;margin:0 0 6px;font-weight:650}
+.lead-in{color:var(--fg-2);max-width:780px;margin:0 0 18px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--fg-3);font-size:13px;margin-bottom:14px}
+.sources{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
+.src{background:#fff;border:1px solid var(--line);border-radius:30px;padding:4px 12px;font-size:12.5px;color:var(--fg-2)}
+.src b{color:var(--fg);font-weight:600;margin-right:4px}
+.banner{display:flex;gap:10px;align-items:flex-start;background:var(--warn-bg);color:var(--warn);border-radius:var(--radius);padding:12px 16px;margin:10px 0;font-size:14px}
+.banner a{color:inherit;text-decoration:underline;font-weight:600}
+.banner.info{background:var(--pri-10);color:var(--pri-90)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0 26px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.kpi b{display:block;font-size:26px;font-weight:650;line-height:1.1}.kpi span{font-size:13px;color:var(--fg-3)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;color:var(--fg);transition:border-color .15s,box-shadow .15s}
+a.card:hover{text-decoration:none;border-color:var(--pri-20);box-shadow:0 4px 14px rgba(43,47,58,.12)}
+.card .top{display:flex;gap:10px;align-items:flex-start}.card .title{font-weight:600;line-height:1.3}
+.badge{font-size:12px;font-weight:700;color:#fff;background:var(--pri);border-radius:6px;padding:2px 7px;flex:none}
+.bar{height:8px;border-radius:4px;background:var(--ne-bg);overflow:hidden}.bar i{display:block;height:100%;background:#45d378}
+.card .foot{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}
+.p{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:12px;line-height:1.5;white-space:nowrap;margin:1px 3px 1px 0}
+.ok{background:var(--ok-bg);color:var(--ok)}.warn{background:var(--warn-bg);color:var(--warn)}
+.no{background:var(--no-bg);color:var(--no)}.ne{background:var(--ne-bg);color:var(--ne)}.pri{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+/* Rollenfarbe: gefüllt = entscheidet, Rahmen = liefert die Antwort */
+.pc{display:inline-block;border:1.5px solid;border-radius:6px;padding:0 7px;font-size:12px;line-height:1.6;font-weight:600;color:#fff;white-space:nowrap}
+.pc.o{background:#fff}
+.small{font-size:12.5px;color:var(--fg-3)}
+.callout{background:#fff;border:1px solid var(--pri-20);border-left:4px solid var(--pri);border-radius:var(--radius);padding:14px 18px;margin:14px 0}
+.callout p{margin:6px 0}.callout ol{margin:6px 0;padding-left:20px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:break-word}
+tr:last-child td{border-bottom:0}th{font-size:12px;color:var(--fg-3);font-weight:600;background:var(--screen)}
+tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg-2)}
+.wide{overflow-x:auto}.wide table{min-width:680px}
+.sec{font:600 11.5px ui-monospace,Consolas,monospace;color:var(--pri);background:var(--pri-10);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:nowrap}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 14px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer;color:var(--fg-2);display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.btn{border:1px solid var(--pri);background:var(--pri);color:#fff;border-radius:8px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer}
+.btn:hover{background:var(--pri-90)}.btn.sec2{background:#fff;color:var(--pri)}.btn.sec2:hover{background:var(--pri-10)}
+.btn.full{width:100%;margin-bottom:8px}
+.link{border:0;background:none;color:var(--fg-3);font:inherit;font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline}
+/* Thema mit mehreren Teilfragen */
+.tp{border:1px solid var(--line);border-radius:var(--radius);background:var(--soft);padding:12px 12px 2px;margin:12px 0;min-width:0}
+.tph{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 6px}
+.tph h3{margin:0}.tph .small{margin-left:auto}
+.q{background:#fff;border:1px solid var(--line);border-left:5px solid var(--pc,#999);border-radius:var(--radius);padding:16px 18px;margin:12px 0}
+.q.moot{opacity:.55}
+.qhead{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.qhead .who{margin-left:auto;font-size:12.5px;color:var(--fg-3)}
+.qq{margin:0 0 8px;font-size:15px}
+.ctx{margin:0 0 10px;font-size:13.5px;color:var(--fg-2);background:var(--screen);border-radius:8px;padding:8px 12px}
+.ctx details{margin-top:4px}.ctx summary{cursor:pointer;color:#1c4fa0}.ctx ul{margin:6px 0 0;padding-left:18px}
+.opts{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:10px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--pri-20)}.opt.sel{border-color:var(--pri);background:var(--pri-10)}
+.opt input[type=radio]{margin-top:4px;accent-color:var(--pri);flex:none}
+.opt .k{font-weight:700;flex:none;width:14px}
+.opt .rec{margin-left:6px}
+.opt input[type=text]{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:14px}
+.note{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px;background:#fff}
+.why{margin:10px 0 0;font-size:13.5px;color:var(--fg-2)}
+.qfoot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-size:12.5px;color:var(--fg-3)}
+.qfoot .link{margin-left:auto}
+/* Verteilung nach Rollen */
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--ne-bg);margin:10px 0}
+.stack i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.legend a{display:block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--fg-2);font-size:13px}
+.legend a:hover{text-decoration:none;border-color:var(--pri-20)}
+.raci td.c,.raci th.c{text-align:center;width:78px}
+.r{display:inline-block;min-width:24px;border:1.5px solid;border-radius:6px;padding:0 5px;font-weight:700;font-size:12px}
+.r.C,.r.I{border-color:var(--line);color:var(--fg-3);font-weight:400}.r.C{background:var(--ne-bg);color:var(--ne)}
+/* Schema der zwei Entwürfe */
+.wfs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.wf{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.wf b{display:block;margin-bottom:8px}
+.wfb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.wfb span{border:1px solid #bbb;border-radius:5px;padding:2px 10px;font-size:12.5px;color:var(--fg-2);background:#fff}
+.wfb span.b{background:var(--pri);border-color:var(--pri);color:#fff}
+.wft{border:1px dashed #bbb;border-radius:6px;padding:10px;font-size:12.5px;color:var(--fg-2);background:var(--screen);margin:6px 0}
+.shot{max-width:100%;border:1px solid var(--line);border-radius:var(--radius);background:#fff}
+textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,Consolas,monospace;background:#fff}
+input.name{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;min-width:280px;background:#fff}
+ul.plain{margin:6px 0;padding-left:20px}ul.plain li{margin:4px 0}
+@media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:20px 16px 60px}}
+@media print{.side,.tools,.link{display:none}.app{display:block}main{padding:0;max-width:none}.q{break-inside:avoid}}
+</style></head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand"><div class="logo">SB</div><div><b>Steuerbox</b><span>Anonymisiertes Beispiel</span></div></div>
+<label class="role">Ansicht<select id="role"></select></label>
+<nav id="nav"></nav>
+<div class="savebox">
+<button class="btn full" id="btnSave" type="button">Mit Antworten speichern</button>
+<div id="saveState"></div>
+</div>
+</aside>
+<main id="main"><noscript>Diese Seite braucht JavaScript.</noscript></main>
+</div>
+<script type="application/json" id="saved">{}</script>
+<script>var ANON=true;var DESIGN_IMG="";</script>
+<script>
+(function(){
+'use strict';
+var SPEC='0.2.0', STAND='26.11.2026', SPEC_OPEN=22, SPEC_NN=5;
+var DESIGN_URL='';
+function fig(node,label){return DESIGN_URL?' (<a href="'+DESIGN_URL+node+'" target="_blank" rel="noopener">'+label+'</a>)':''}
+
+/* ---------- Rollen ---------- */
+var P={
+ FB:{k:'Fachbereich',s:'Fachbereich',c:'#7b3fb5',role:'Fachseite: Fachliche Anforderungen, Systemführung Datenübermittlung, Steuerbox-Rollout',who:'',job:'Entscheidet, was der Anlagenbetreiber sieht und versteht. Liefert die Fakten zu Daten und Steuergruppen: Format, Stufen, Gründe, Takt, Namen.'},
+ PO:{k:'Product Owner',s:'PO',c:'#1c6dd0',role:'Product Owner',who:'',job:'Entscheidet Umfang und Bedienverhalten, wo ein Vorschlag vorliegt und kein fachlicher Inhalt betroffen ist.'},
+ ARCH:{k:'Architekt',s:'Architekt',c:'#0e7c86',role:'IT-Architekt',who:'',job:'Entscheidet Schnittstellen, Datenwege und Datenmodell.'},
+ DEV:{k:'Umsetzung',s:'Umsetzung',c:'#c2307a',role:'Umsetzung der Anwendung (Frontend und Backend)',who:'',job:'Liefert den Stand des gebauten Verhaltens aus dem Code und die Machbarkeit. Entscheidet keine Frage.'},
+ MW:{k:'Middleware',s:'Middleware',c:'#8d5a2b',role:'Middleware',who:'',job:'Liefert die Abbildungsregeln von der CSV auf den Aufruf an das Backend.'},
+ UX:{k:'UX / Design',s:'UX',c:'#5f6b7a',role:'Design (Entwurf)',who:'',job:'Arbeitet Platzierung und Darstellung aus, wenn die Entscheidung gefallen ist.'},
+ PLAT:{k:'Plattform-Team',s:'Plattform',c:'#5c7a1f',role:'Zentrales Plattform-Team (Pipeline, Build und Deployment)',who:'',job:'Entscheidet und beantwortet keine Frage dieses Dokuments. Hat im Pull Request das letzte Wort, sobald sich die Build- oder Deployment-Konfiguration ändert.'}
+};
+var ORDER=['FB','PO','ARCH','DEV','MW','UX','PLAT'];
+
+/* ---------- Use Cases: Lesefassung der Zeilen aus feature-set-steuerbox.md ---------- */
+/* Zeile: [Nr., Stand (b = gebaut, n = neu, v = neu unter Vorbehalt), Ausgangslage, Aktion, Ergebnis] */
+var UC=[
+ {id:'uc1',t:'Steuergruppe über die Adresse ermitteln',actor:'Anlagenbetreiber',fs:'FS-01, FS-05',
+  goal:'Ein Anlagenbetreiber ermittelt über PLZ, Ort und Ortsteil seine Steuergruppe.',src:'Epic, Zielsetzung und Teil 1',
+  rows:[
+   ['FS-01.1','b','Zur PLZ 12345 gibt es Adressen im Adressverzeichnis','Die Anwendung fragt die Adressen zur PLZ ab','Sie erhält die Liste der Orte und Ortsteile dieser PLZ'],
+   ['FS-01.3','b','PLZ 12345, Ort und Ortsteil sind gefüllt','Klick auf den Button zum Ermitteln','Die Anwendung fragt die Steuergruppe mit PLZ, Ort und Ortsteil an'],
+   ['FS-01.4','b','Die Adressliste enthält genau einen Eintrag mit dieser PLZ, diesem Ort und diesem Ortsteil','Anfrage der Steuergruppe','Das Ergebnis ist die Steuergruppe dieses Eintrags'],
+   ['FS-05.1','n','Seite geladen','Anzeige','Überschriften „Ermittlung der Steuergruppe“ und „Letzte Regelungen“'],
+   ['FS-05.2-a','n','Seite geladen','Anzeige','Einleitungstext laut Entwurf'],
+   ['FS-05.2-b','n','Seite geladen','Anzeige','Button „Steuergruppe ermitteln“'],
+   ['FS-05.3','n','Seite geladen','Anzeige','Feldbeschriftungen „PLZ *“, „Ort *“, „Ortsteil *“']
+  ]},
+ {id:'uc2',t:'Regelungen einsehen',actor:'Anlagenbetreiber',fs:'FS-01, FS-03, FS-05',
+  goal:'Ein Anlagenbetreiber sieht die Steuerhandlungen in einer Tabelle und je Steuerhandlung die Steuereinrichtung (FRE oder Steuerbox).',src:'Epic, Zielsetzung und Teil 2; Entwurf A',
+  rows:[
+   ['FS-01.5','b','Es sind Steuerhandlungen gespeichert','Abruf der Steuerhandlungen','Die Antwort enthält alle gespeicherten Einträge'],
+   ['FS-01.6','b','Seite wird geladen','Die Seite wird geöffnet','Die Anwendung ruft die Steuerhandlungen einmal ab; je Eintrag eine Tabellenzeile'],
+   ['FS-05.4-b','n','Seite geladen','Anzeige','Spalten „Datum“, „Uhrzeit“, „Steuergruppe“, „Steuereinrichtung“, „Status“, „Leistung in %“, „Grund“'],
+   ['FS-01.7','b','Eintrag vom 09.07.2025, 16:32:02','Tabelle wird angezeigt','Spalte Datum zeigt „09.07.2025“'],
+   ['FS-05.6','n','Eintrag vom 09.07.2025, 16:32:02','Tabelle wird angezeigt','Spalte Uhrzeit zeigt „16:32:02 Uhr“'],
+   ['FS-03.1','n','Eintrag einer FRE; Eintrag einer Steuerbox','Tabelle wird angezeigt','Spalte Steuereinrichtung zeigt „FRE“; „Steuerbox“'],
+   ['FS-01.9','b','Eintrag mit Status „freigegeben“; „abgeregelt“','Tabelle wird angezeigt','Status-Marke grün; rot'],
+   ['FS-05.8','n','Eintrag mit Status „abgeregelt“; „freigegeben“','Tabelle wird angezeigt','Text der Status-Marke „abgeregelt“; „freigegeben“'],
+   ['FS-05.7','n','Eintrag mit Leistungsstufe 30','Tabelle wird angezeigt','Spalte Leistung zeigt „30“, ohne „%“'],
+   ['FS-05.5','n','217 Einträge geladen, kein Filter gesetzt','Anzeige','Text „217 Einträge“']
+  ]},
+ {id:'uc3',t:'Regelungen filtern',actor:'Anlagenbetreiber',fs:'FS-01, FS-03, FS-04, FS-05',
+  goal:'Ein Anlagenbetreiber grenzt die Tabelle nach Zeitraum (Von/Bis), Steuergruppe und Steuereinrichtung ein.',src:'Entwurf A; Kommentare K-09 und K-10 am Entwurf',
+  rows:[
+   ['FS-05.4-a','n','Seite geladen','Anzeige','Filterbeschriftungen „Von“, „Bis“, „Steuergruppe“, „Steuereinrichtung“'],
+   ['FS-01.8','b','Einträge der Steuergruppen „Nord“ und „Süd“','Filter Steuergruppe = „Nord“; = „Keine Auswahl“','Nur Zeilen von „Nord“; alle Zeilen'],
+   ['FS-04.1','n','Eintrag vom 09.07.2026','Von 18.04.2026, Bis 10.08.2026','Die Zeile ist sichtbar'],
+   ['FS-04.2','n','Eintrag vom 17.04.2026; vom 11.08.2026','Von 18.04.2026, Bis 10.08.2026','Die Zeile ist nicht sichtbar'],
+   ['FS-03.2','v','Einträge von FRE und Steuerbox','Nur „Steuerbox“ angehakt','Nur Zeilen mit „Steuerbox“'],
+   ['FS-03.3','v','Einträge von FRE und Steuerbox','Nur „FRE“ angehakt','Nur Zeilen mit „FRE“'],
+   ['FS-03.4','v','Einträge von FRE und Steuerbox','„Steuerbox“ und „FRE“ angehakt','Zeilen beider Steuereinrichtungen'],
+   ['FS-01.10','b','Filter Steuergruppe ist gesetzt','Klick auf „Zurücksetzen“','Filter Steuergruppe ist leer; alle Zeilen sichtbar']
+  ],
+  note:'„Unter Vorbehalt“: FS-03.2 bis FS-03.4 gelten nur, wenn der Filter nach Steuereinrichtung bleibt (Frage K-07-a).'},
+ {id:'uc4',t:'Steuerhandlungen bereitstellen',actor:'Middleware, mit Daten der Systemführung',fs:'FS-02, FS-06',
+  goal:'Die Middleware liefert die Steuerhandlungen der FRE und der Steuerboxen an das Backend, damit die Anwendung sie anzeigt.',src:'Epic, Teil 1 und Teil 2',
+  rows:[
+   ['FS-06.1','b','Für die Steuergruppe „Süd“ gibt es noch keinen Eintrag','Die Middleware meldet eine Steuerhandlung der FRE: 08.04.2026 14:34:35, „Süd“, Stufe 100, „freigegeben“','Der Eintrag ist gespeichert und wird mit diesen Werten zurückgegeben']
+  ],
+  note:'Für die Steuerbox gibt es noch kein Szenario (FS-02): Keine Quelle nennt Format, Weg oder Werte der Steuerbox-Daten. Die Fragen unten schließen diese Lücke.'}
+];
+
+/* ---------- Themen und Teilfragen ---------- */
+/* Ein Thema ist eine offene Stelle oder eine nicht nachweisbare Aussage des Feature-Sets. tp = Thema, falls es mehrere Teilfragen hat. */
+var TP={
+ 'N-FS05':'Maß für „verständlich“, „korrekt“ und „konsistent“',
+ 'K-01':'Steuereinrichtung beim Ermitteln, Ausgabe des Ergebnisses',
+ 'new-3':'Leistungsstufen und Status',
+ 'new-14':'Zeitpunkt und Zeitzone',
+ 'K-07':'Filter nach Steuereinrichtung',
+ 'new-9':'Verhalten der Checkboxen',
+ 'new-8':'Verhalten des Zeitraumfilters Von/Bis',
+ 'new-2':'Lieferung der Steuerbox-Daten',
+ 'new-5':'Steuergruppen der Steuerbox',
+ 'new-13':'Abbildung der CSV, Schreibweise der Gruppennamen'
+};
+function raci(s){var m={};s.split(' ').forEach(function(x){var p=x.split(':');m[p[0]]=p[1]});return m}
+var B12='<details><summary>Welche Punkte sind das?</summary><ul>'+
+ '<li>Der Button zum Ermitteln ist gesperrt, solange PLZ, Ort oder Ortsteil leer ist.</li>'+
+ '<li>Kein Treffer zur Adresse: Dialog „Keine Region gefunden“. Mehrere Treffer: der erste zählt.</li>'+
+ '<li>Technischer Fehler: Dialog „Es ist ein technischer Fehler aufgetreten.“ Fehlertexte am Feld PLZ.</li>'+
+ '<li>Ort und Ortsteil werden vorbelegt, wenn es zur PLZ nur einen gibt.</li>'+
+ '<li>Die Tabelle ist nach Zeitpunkt sortiert, neueste Einträge zuerst.</li>'+
+ '<li>Das Dropdown „Steuergruppe“ zeigt die Gruppen, die in der Tabelle vorkommen, und „Keine Auswahl“.</li>'+
+ '<li>Jeder Status außer „freigegeben“ wird rot als „Abgeregelt“ gezeigt.</li>'+
+ '<li>„Zurücksetzen“ leert auch das Adressformular.</li>'+
+ '<li>Die Tabelle ist ohne Anmeldung abrufbar; nur die Middleware darf Einträge anlegen.</li>'+
+ '<li>Legende unter der Tabelle, Kartenansicht auf dem Smartphone, Tabelle mit eigenem Scrollbereich.</li>'+
+ '<li>Wiederholungsbefehl: Hat der neueste Eintrag einer Steuergruppe schon dieselbe Stufe, wird nichts gespeichert.</li>'+
+ '<li>Grenzen der Eingabe: Gruppenname bis 100 Zeichen, Stufe 0 bis 100, Status bis 50 Zeichen.</li>'+
+ '</ul></details>';
+var Q=[
+ /* Grundsatz */
+ {id:'new-1',uc:'g',t:'Welcher Entwurf gilt?',
+  q:'Welcher Entwurf ist die Grundlage für die Umsetzung?',
+  ctx:'Das Epic verlinkt Entwurf A'+fig('a','Entwurf A')+': Adresse eingeben, Steuergruppe ermitteln, Tabelle aller Steuergruppen. Die neuesten Kommentare hängen an Entwurf B'+fig('b','Entwurf B')+': SR-ID eingeben, Steuerhandlungen der eigenen Anlage, Herunterladen. Keine Quelle sagt, welcher gilt. Alle Szenarien dieser Seite beschreiben Entwurf A.',
+  o:['Entwurf A: Ermittlung über die Adresse (PLZ, Ort, Ortsteil), Tabelle aller Steuergruppen mit Filtern',
+     'Entwurf B: Eingabe der SR-ID (Steuerbare Ressource), Steuerhandlungen der eigenen Anlage, Herunterladen',
+     'Beide: Entwurf A jetzt, Entwurf B als spätere Ausbaustufe'],
+  rec:null,why:'Kein Vorschlag: Die Quellen widersprechen sich. Bei Entwurf B entfallen Use Case 1 und alle Fragen mit der Marke „nur Entwurf A“. Dafür entstehen neue Fragen: Daten je Anlage statt je Steuergruppe, und Zugriff ohne Anmeldung auf die Daten einer einzelnen Anlage. Dann sind Datenschutz und Informationssicherheit einzubinden.',
+  r:raci('FB:R PO:A UX:C ARCH:C DEV:I MW:I'),fs:'alle'},
+ {id:'new-12',uc:'g',t:'Heutiges Verhalten ohne schriftliche Anforderung beibehalten?',
+  q:'Die heutige Anwendung zeigt Verhalten, das in keiner Anforderung steht. Soll es so bleiben?',
+  ctx:'Diese Punkte sind seit Teil 1 in Betrieb. Sie stehen nur im Code, nicht im Epic und nicht im Entwurf.'+B12,
+  o:['Ja: Alles bleibt wie heute, soweit der neue Entwurf es nicht ändert. In allen Texten wird „Region“ zu „Steuergruppe“.',
+     'Nein: Jeden Punkt einzeln entscheiden (bitte in der Anmerkung nennen, was sich ändern soll)'],
+  rec:0,why:'Eine Einzelentscheidung erzeugt rund ein Dutzend neue Fragen zu Verhalten, das bisher niemand beanstandet hat.',
+  r:raci('PO:A DEV:R FB:C UX:C'),fs:'FS-01, FS-06'},
+ {id:'N-FS05a',tp:'N-FS05',uc:'g',t:'Woran wird „verständlich“ und „korrekt“ gemessen?',
+  q:'Das Epic verlangt eine „verständliche, filterbare und korrekte Darstellung“. Woran wird das bei der Abnahme geprüft?',
+  ctx:'Ohne Maß ist die Aussage nicht prüfbar (FS-05, Nicht nachweisbar).',
+  o:['Abnahme gegen den Entwurf durch die Fachseite','Nutzertest mit Anlagenbetreibern und einer Zielquote (bitte Quote nennen)'],
+  rec:0,why:'Ohne neue Daten und ohne Testpersonen prüfbar.',
+  r:raci('PO:A FB:C UX:I'),fs:'FS-05'},
+ {id:'N-FS05b',tp:'N-FS05',uc:'g',t:'Was heißt „konsistent“ für FRE und Steuerbox?',
+  q:'Das Epic verlangt, Steuerhandlungen aus FRE und Steuerboxen „konsistent“ einzusehen. Was muss dafür gleich sein?',
+  ctx:'Ohne Maß ist die Aussage nicht prüfbar (FS-05, Nicht nachweisbar).',
+  o:['Dieselbe Tabelle mit denselben Spalten für beide Steuereinrichtungen, wie der Entwurf sie zeigt','Eine eigene Liste von Merkmalen (bitte nennen)'],
+  rec:0,why:'Das prüfen die Szenarien FS-03.1 und FS-05.4-b dann schon.',
+  r:raci('PO:A FB:C'),fs:'FS-05'},
+
+ /* UC1 */
+ {id:'K-01-a',tp:'K-01',uc:'uc1',a:1,t:'Auswahl der Steuereinrichtung beim Ermitteln',
+  q:'Wählt der Anlagenbetreiber im oberen Block zusätzlich seine Steuereinrichtung (FRE oder Steuerbox), bevor er die Steuergruppe ermittelt?',
+  ctx:'Die Fachseite hat das im Entwurf als nötig genannt. Der Entwurf zeigt es nicht, eine Antwort des Designs fehlt.',
+  o:['Ja, als Pflichtauswahl vor „Steuergruppe ermitteln“','Ja, aber freiwillig: Ohne Auswahl werden die Steuergruppen beider Steuereinrichtungen ermittelt','Nein, die Auswahl entfällt'],
+  rec:0,why:'Laut Epic bilden Steuerboxen eigene Steuergruppen. Eine Adresse allein bestimmt die Gruppe dann nicht.',
+  dep:['new-5b'],r:raci('FB:A UX:R PO:C DEV:I'),fs:'FS-01, FS-03'},
+ {id:'K-01-b',tp:'K-01',uc:'uc1',a:1,t:'Ausgabe der ermittelten Steuergruppe',
+  q:'Wie erfährt der Anlagenbetreiber, welche Steuergruppe ermittelt wurde?',
+  ctx:'Heute wird die ermittelte Gruppe in den Filter der Tabelle übernommen. Die Fachseite fragt: „Auto-Fill im unteren Bereich?“',
+  o:['Übernahme in den Filter „Steuergruppe“ der Tabelle (wie heute)','Übernahme in den Filter und zusätzlich als Text im oberen Block, zum Beispiel „Ihre Steuergruppe: Nord“','Nur als Text im oberen Block, ohne Übernahme in den Filter'],
+  rec:0,why:'Ist gebaut und entspricht dem Vorschlag der Fachseite.',
+  r:raci('PO:A UX:R FB:C DEV:I'),fs:'FS-01'},
+ {id:'new-11',uc:'uc1',a:1,t:'Ort und Ortsteil: Auswahl oder freie Eingabe?',
+  q:'Sind Ort und Ortsteil eine Auswahlliste oder freie Eingabefelder?',
+  ctx:'Heute: Auswahl aus den Orten und Ortsteilen, die es zur PLZ gibt. Der Entwurf zeichnet Eingabefelder ohne Auswahlpfeil.',
+  o:['Auswahlliste (wie heute)','Freie Eingabe (wie gezeichnet)'],
+  rec:0,why:'Die Steuergruppe wird nur bei genau gleicher Schreibweise gefunden. Eine Auswahl verhindert Tippfehler.',
+  r:raci('PO:A UX:C DEV:C FB:I'),fs:'FS-01'},
+ {id:'K-06',uc:'uc1',a:1,t:'Straße als weiteres Adressfeld',
+  q:'Braucht die Ermittlung zusätzlich die Straße?',
+  ctx:'Stand der Fachseite: „das braucht es voraussichtlich nicht“. Eine endgültige Entscheidung steht nicht im Thread.',
+  o:['Nein: PLZ, Ort und Ortsteil genügen','Ja: Straße als freiwilliges Feld'],
+  rec:0,why:'Entspricht dem Stand der Fachseite. Voraussetzung: Auch die Steuerbox-Gruppen lassen sich über PLZ, Ort und Ortsteil zuordnen.',
+  dep:['new-5b'],r:raci('PO:A FB:C'),fs:'FS-01'},
+ {id:'K-04',uc:'uc1',a:1,t:'Hilfe „Welche Steuereinrichtung habe ich?“',
+  q:'Bekommt der Anlagenbetreiber eine Hilfe, um FRE und Steuerbox zu unterscheiden, und in welcher Form?',
+  ctx:'Vorschlag der Fachseite: Foto-Popup im oberen Block, Bild A Steuerbox, Bild B FRE. Design und Fachseite sind sich seit dem Austausch einig: eine visuelle Hilfe, keine langen Texte.',
+  o:['Foto-Popup im oberen Block: Bild A Steuerbox, Bild B FRE, wenig Text','Info-Symbol (i) an den Checkboxen „Steuerbox“ und „FRE“','Nicht in dieser Ausbaustufe'],
+  rec:0,why:'Vorschlag der Fachseite. Bitte in der Anmerkung nennen, wer die beiden Fotos liefert.',
+  r:raci('FB:A UX:R PO:C DEV:I'),fs:'FS-03'},
+
+ /* UC2 */
+ {id:'new-6',uc:'uc2',t:'Grund der Steuerhandlung',
+  q:'Welche Gründe kann die Spalte „Grund“ zeigen, und woher kommen sie?',
+  ctx:'Entschieden: Der Grund bleibt sichtbar, „es gibt auch andere Begründungen“. Heute steht fest „Engpass“ in der Anwendung; die gelieferten Daten haben kein Feld dafür. Die FRE-Testdaten enthalten den Text „EEG-Regelung“; ob das der Grund ist, ist nicht belegt.',
+  o:['Der Grund kommt je Steuerhandlung aus den gelieferten Daten; die Systemführung nennt die möglichen Werte','Fester Text „Engpass“ wie heute, bis die Daten einen Grund enthalten','Feste Liste von Gründen, die die Fachseite vorgibt (bitte in der Anmerkung nennen)'],
+  rec:0,why:'Ein fester Text kann „andere Begründungen“ nicht zeigen.',
+  r:raci('FB:AR MW:C DEV:I'),fs:'FS-02'},
+ {id:'K-03',uc:'uc2',t:'Hinweis zur Steuerbarkeit',
+  q:'Wo steht der Hinweis zur Steuerbarkeit (Wechselrichter, Stufen 60 / 30 / 0 %)?',
+  ctx:'Der Entwurf zeigt ihn im oberen Block. Vorschlag der Fachseite: aus der Anwendung nehmen und als Infobox der Website unter die Anwendung setzen, mit eigenem Text und ohne Verweis auf die FAQ. Dazu der Hinweis: „Erzeugung“ statt „Einspeisung“.',
+  o:['Als Infobox der Website (CMS) unter der Anwendung; der Text liegt bei der Fachseite','Im oberen Block der Anwendung, wie gezeichnet','In der Anwendung unter der Tabelle, fest eingebaut'],
+  rec:0,why:'Vorschlag der Fachseite. Der Text lässt sich dann ohne neue Version der Anwendung ändern.',
+  r:raci('FB:A UX:C PO:C DEV:I'),fs:'FS-05'},
+ {id:'new-3a',tp:'new-3',uc:'uc2',t:'Leistungsstufen',
+  q:'Auf welche Stufen kann eine Anlage geregelt werden, und gelten sie für FRE und Steuerbox gleich?',
+  ctx:'Hinweistext der Fachseite: 60 / 30 / 0 %. Entwurf: 0, 30, 60, 100. Fachseite: „100 - 60 - 30 - 0“.',
+  o:['100 / 60 / 30 / 0 für FRE und Steuerbox','Steuerbox: 100 / 60 / 30 / 0; FRE: andere Stufen (bitte nennen)','Andere Stufen (bitte nennen)'],
+  rec:0,why:'Drei Stellen nennen dieselben Werte.',
+  r:raci('FB:AR MW:C DEV:I'),fs:'FS-02'},
+ {id:'new-3b',tp:'new-3',uc:'uc2',t:'Wer bildet Status und Stufe einer Steuerbox-Steuerhandlung?',
+  q:'Wer setzt für eine Steuerbox-Steuerhandlung die Werte „Status“ (abgeregelt / freigegeben) und „Stufe“?',
+  ctx:'Bei FRE setzt die Middleware beide Werte. Die Regel dafür steht in keiner Quelle (siehe new-13a).',
+  o:['Die Middleware bildet beide Werte, wie bei FRE','Die Datenquelle liefert beide Werte fertig','Das Backend leitet den Status aus der Stufe ab (100 = freigegeben, sonst abgeregelt)'],
+  rec:0,why:'Gleicher Weg wie bei FRE, keine Änderung am Backend.',
+  dep:['new-13a'],r:raci('ARCH:A MW:R FB:C DEV:C'),fs:'FS-02'},
+ {id:'new-7',uc:'uc2',a:1,t:'„Steuerbox/FRE“ in einer Zelle, „100“ als Grund',
+  q:'Der Entwurf enthält unterhalb des sichtbaren Bereichs zwei Zeilen mit „Steuerbox/FRE“ in einer Zelle und „100“ in der Spalte Grund. Haben sie eine Bedeutung?',
+  ctx:'Entschieden: In der Spalte Steuereinrichtung steht „entweder FRE oder Steuerbox“.',
+  o:['Nein, das sind Reste des Entwurfs','Ja (bitte die Bedeutung nennen)'],
+  rec:0,why:'Die Zeilen widersprechen der Entscheidung zur Spalte Steuereinrichtung und sind im Entwurf abgeschnitten.',
+  r:raci('PO:A UX:R'),fs:'FS-02, FS-03'},
+ {id:'K-08',uc:'uc2',t:'Laufende Steuerungen kennzeichnen',
+  q:'Sollen gerade laufende Steuerungen in der Tabelle gekennzeichnet werden, zum Beispiel durch einen Punkt in einer Zusatzspalte?',
+  ctx:'Frage der Fachseite, bisher ohne Antwort. Das System speichert Ereignisse, keinen Zustand: „laufend“ ließe sich nur daraus ableiten, dass der neueste Eintrag einer Steuergruppe „abgeregelt“ ist.',
+  o:['Ja: Kennzeichnung am neuesten Eintrag einer Steuergruppe, solange er „abgeregelt“ ist','Nein, nicht in dieser Ausbaustufe','Ja, aber erst, wenn die Daten zeitnah geliefert werden'],
+  rec:1,why:'Bei täglicher Lieferung (Stand FRE laut Epic) ist „gerade laufend“ bis zu einem Tag alt und kann falsch sein. Das ist eine Schlussfolgerung, kein Beleg; die Antwort auf new-2c kann sie ändern.',
+  dep:['new-2c'],r:raci('PO:A DEV:R FB:C ARCH:C'),fs:'FS-05'},
+ {id:'K-05',uc:'uc2',t:'Zeilen abwechselnd hinterlegen',
+  q:'Werden die Tabellenzeilen abwechselnd hinterlegt?',
+  ctx:'Der Entwurf zeigt es. Der Kommentar dazu ist offen.',
+  o:['Ja, wie gezeichnet','Nein'],
+  rec:0,why:'Der Entwurf zeigt es bereits.',
+  r:raci('PO:A UX:C'),fs:'FS-05'},
+ {id:'new-14a',tp:'new-14',uc:'uc2',t:'Zeitpunkt aus der CSV',
+  q:'Welches Feld der CSV übernimmt die Middleware als Zeitpunkt?',
+  ctx:'In den Testdaten steht Feld 3 („2025-10-03 17:04:23“) in UTC+1; Feld 2 (1759507463) ist derselbe Moment als eindeutige Zahl. Die gesetzliche Zeit an diesem Tag war UTC+2. Das Backend speichert den Zeitpunkt ohne Zeitzone.',
+  o:['Feld 2 (Unix-Zeit, eindeutig)','Feld 3 (Ortszeit ohne Zone)'],
+  rec:0,why:'Feld 3 weicht in den Testdaten im Sommer um eine Stunde von der gesetzlichen Zeit ab.',
+  r:raci('ARCH:A MW:R DEV:C'),fs:'FS-06'},
+ {id:'new-14b',tp:'new-14',uc:'uc2',t:'Zeitzone von Datum und Uhrzeit',
+  q:'In welcher Zeitzone zeigt die Anwendung Datum und Uhrzeit?',
+  ctx:'Heute: in der Zeitzone des Geräts. Ein Gerät mit anderer Zeitzone zeigt eine andere Uhrzeit und gegebenenfalls ein anderes Datum.',
+  o:['Immer deutsche gesetzliche Zeit (MEZ / MESZ), unabhängig vom Gerät','Zeitzone des Geräts (wie heute)'],
+  rec:0,why:'Die Steuerhandlung findet im Versorgungsgebiet statt. Sonst liefert auch der Filter Von/Bis je nach Gerät andere Zeilen.',
+  dep:['new-14a'],r:raci('PO:A ARCH:R DEV:C FB:I'),fs:'FS-01, FS-04, FS-05'},
+
+ /* UC3 */
+ {id:'K-07-a',tp:'K-07',uc:'uc3',a:1,t:'Wird der Filter gebraucht?',
+  q:'Wird der Filter nach Steuereinrichtung (Checkboxen „Steuerbox“ und „FRE“) gebraucht?',
+  ctx:'Design: „Dann könnte man hinterfragen, ob man es überhaupt braucht.“ Fachseite: „Ich vermute, dass wir es brauchen, falls gleiche regionale Benennungen erfolgen.“ Die Spalte „Steuereinrichtung“ selbst ist entschieden.',
+  o:['Ja, der Filter bleibt','Nein, die Spalte „Steuereinrichtung“ genügt','Erst entscheiden, wenn die Namen der Steuerbox-Gruppen feststehen'],
+  rec:0,why:'Der Filter funktioniert unabhängig von der Benennung. Mit „Ja“ gelten die Szenarien FS-03.2 bis FS-03.4 ohne Vorbehalt.',
+  dep:['new-5a'],r:raci('FB:A UX:C PO:C'),fs:'FS-03'},
+ {id:'K-07-b',tp:'K-07',uc:'uc3',a:1,t:'Platz der Checkboxen',
+  q:'Stehen die Checkboxen „Steuerbox“ und „FRE“ vor oder rechts vom Dropdown „Steuergruppe“?',
+  ctx:'Der Entwurf zeigt sie rechts. Die Fachseite schlägt vor, sie davor zu setzen, „da ja so die Auswahl reduziert wird“.',
+  o:['Vor dem Dropdown „Steuergruppe“','Rechts vom Dropdown (wie gezeichnet)'],
+  rec:0,why:'Passt zu new-9b: Die Checkbox schränkt die Auswahl im Dropdown ein, also steht sie davor.',
+  dep:['K-07-a'],r:raci('PO:A UX:R FB:C'),fs:'FS-03'},
+ {id:'new-9a',tp:'new-9',uc:'uc3',a:1,t:'Keine Checkbox angehakt',
+  q:'Was zeigt die Tabelle, wenn weder „Steuerbox“ noch „FRE“ angehakt ist?',
+  ctx:'Der Entwurf zeigt beide Checkboxen leer und Zeilen beider Steuereinrichtungen. Seine Daten sind aber kein Filterergebnis.',
+  o:['Alle Zeilen (kein Filter)','Keine Zeile'],
+  rec:0,why:'So zeigt es der Entwurf.',
+  dep:['K-07-a'],r:raci('PO:A UX:C'),fs:'FS-03'},
+ {id:'new-9b',tp:'new-9',uc:'uc3',a:1,t:'Wirkung der Checkboxen auf das Dropdown',
+  q:'Ändern die Checkboxen die Auswahl im Dropdown „Steuergruppe“?',
+  ctx:'Die Fachseite geht davon aus („da ja so die Auswahl reduziert wird“).',
+  o:['Ja: Das Dropdown zeigt nur Steuergruppen der angehakten Steuereinrichtung','Nein: Das Dropdown zeigt immer alle Steuergruppen'],
+  rec:0,why:'Entspricht der Erwartung der Fachseite.',
+  dep:['K-07-a'],r:raci('PO:A UX:C DEV:C'),fs:'FS-03'},
+ {id:'K-02',uc:'uc3',t:'Bisheriger Statusfilter',
+  q:'Darf der heutige Filter nach Status („Abgeregelt“ / „Freigegeben“) entfallen?',
+  ctx:'Der neue Entwurf enthält ihn nicht. Begründung des Designs: Abregelung und Freigabe gehören zusammen; ein Filter nach nur einem Status nimmt Einträge aus dem Verlauf und ändert, wie er zu lesen ist. Die Fachseite wollte das abklären.',
+  o:['Ja, der Statusfilter entfällt','Nein, der Statusfilter bleibt'],
+  rec:0,why:'Die Begründung des Designs ist unwidersprochen.',
+  r:raci('FB:A UX:C PO:I'),fs:'FS-01'},
+ {id:'new-8a',tp:'new-8',uc:'uc3',t:'Grenzen',
+  q:'Zählen die Tage „Von“ und „Bis“ selbst zum Zeitraum?',
+  ctx:'Entschieden ist nur: Zeitraum „von“ - „bis“. Die Szenarien FS-04.1 und FS-04.2 prüfen deshalb keinen Grenztag.',
+  o:['Ja: 18.04. bis 10.08. zeigt auch Einträge vom 18.04. und vom 10.08.','Nein: Die Grenztage zählen nicht mit'],
+  rec:0,why:'So liest ein Anlagenbetreiber „von … bis“.',
+  r:raci('PO:A UX:C DEV:C'),fs:'FS-04'},
+ {id:'new-8b',tp:'new-8',uc:'uc3',t:'Vorbelegung',
+  q:'Womit sind „Von“ und „Bis“ beim Öffnen der Seite belegt?',
+  ctx:'Heute gibt es keinen Datumsfilter; die Tabelle zeigt alle Einträge.',
+  o:['Beide Felder leer, alle Einträge sichtbar','Die letzten 30 Tage','Das laufende Kalenderjahr'],
+  rec:0,why:'Entspricht dem heutigen Verhalten.',
+  r:raci('PO:A UX:C FB:C'),fs:'FS-04'},
+ {id:'new-8c',tp:'new-8',uc:'uc3',t:'Nur ein Datum',
+  q:'Was gilt, wenn nur „Von“ oder nur „Bis“ gefüllt ist?',
+  ctx:'',
+  o:['Erlaubt: nur „Von“ = ab diesem Tag, nur „Bis“ = bis zu diesem Tag','Der Filter wirkt erst, wenn beide Felder gefüllt sind'],
+  rec:0,why:'Ein Feld weniger auszufüllen, kein Sonderfall für den Nutzer.',
+  r:raci('PO:A UX:C DEV:C'),fs:'FS-04'},
+ {id:'new-8d',tp:'new-8',uc:'uc3',t:'„Von“ liegt nach „Bis“',
+  q:'Was geschieht, wenn „Von“ nach „Bis“ liegt?',
+  ctx:'',
+  o:['Fehlermeldung am Feld, die Tabelle bleibt unverändert','Der Kalender lässt diese Auswahl nicht zu','Keine Meldung, die Tabelle ist leer'],
+  rec:0,why:'Gilt auch, wenn das Datum über die Tastatur eingegeben wird.',
+  r:raci('PO:A UX:C DEV:C'),fs:'FS-04'},
+ {id:'new-8e',tp:'new-8',uc:'uc3',t:'„Zurücksetzen“',
+  q:'Leert „Zurücksetzen“ auch „Von“ und „Bis“?',
+  ctx:'Heute leert „Zurücksetzen“ alle Filter.',
+  o:['Ja','Nein, nur Steuergruppe und Steuereinrichtung'],
+  rec:0,why:'Entspricht dem heutigen Verhalten.',
+  r:raci('PO:A UX:C'),fs:'FS-04'},
+ {id:'new-10',uc:'uc3',t:'Anzahl der Einträge bei gesetztem Filter',
+  q:'Zählt „N Einträge“ die gefilterten oder alle Einträge?',
+  ctx:'Entschieden ist nur der Fall ohne Filter (FS-05.5).',
+  o:['Die gefilterten Einträge','Immer alle Einträge'],
+  rec:0,why:'Die Zahl beschreibt dann, was die Tabelle zeigt.',
+  r:raci('PO:A UX:C'),fs:'FS-05'},
+ {id:'N-FS04',uc:'uc3',t:'Reichen diese Filter?',
+  q:'Das Epic nennt „eingeschränkte Filtermöglichkeiten“ als Mangel. Ist er mit den Filtern des Entwurfs behoben?',
+  ctx:'Ohne Maß ist die Aussage nicht prüfbar (FS-04, Nicht nachweisbar). Kommentar am Entwurf: „Anforderung war die Integration der Steuergruppe und Datum filterung.“',
+  o:['Ja: Von/Bis, Steuergruppe und Steuereinrichtung sind das Maß','Nein: weitere Filter (bitte nennen)'],
+  rec:0,why:'So nennt der Kommentar am Entwurf die Anforderung.',
+  r:raci('PO:A FB:C'),fs:'FS-04'},
+
+ /* UC4 */
+ {id:'new-2a',tp:'new-2',uc:'uc4',t:'Format',
+  q:'In welchem Format liefert die Steuerbox-Quelle die Steuerhandlungen, und gibt es eine Beispieldatei?',
+  ctx:'Epic: Die Daten kommen „über CSV-Dateien, die regelmäßig bereitgestellt werden“, „aus einer separaten Datenquelle“. Format und Beispiel fehlen. Für FRE liegen drei Testzeilen vor.',
+  o:['Gleiches Format wie die FRE-CSV','Anderes Format: Beispieldatei und Feldbeschreibung werden geliefert (bitte Ablageort nennen)','Steht noch nicht fest (bitte Termin nennen)'],
+  rec:null,why:'Kein Vorschlag: Faktenfrage. Ohne Beispieldatei gibt es für die Steuerbox kein prüfbares Szenario.',
+  r:raci('FB:R ARCH:A MW:C DEV:C'),fs:'FS-02'},
+ {id:'new-2b',tp:'new-2',uc:'uc4',t:'Weg ins Backend',
+  q:'Auf welchem Weg kommen die Steuerbox-Daten ins Backend?',
+  ctx:'FRE heute: Die Middleware liest die CSV und sendet je Steuerhandlung einen Aufruf mit Zeitpunkt, Gruppe, Stufe und Status. Das Backend liest keine CSV und hat keinen Zeitplan.',
+  o:['Wie FRE: über die Middleware und denselben Aufruf','Eigene Schnittstelle für Steuerbox-Daten','Anderer Weg (bitte nennen)'],
+  rec:0,why:'Der Weg läuft bereits; das Backend bleibt bis auf das Feld Steuereinrichtung gleich. Eine eigene Schnittstelle kann die Deployment-Konfiguration ändern; dann ist das Plattform-Team einzubinden.',
+  dep:['new-2a'],r:raci('ARCH:A MW:R DEV:C FB:I PLAT:C'),fs:'FS-02'},
+ {id:'new-2c',tp:'new-2',uc:'uc4',t:'Takt',
+  q:'Wie schnell nach einer Steuerhandlung der Steuerbox muss sie in der Anwendung sichtbar sein?',
+  ctx:'Epic: „regelmäßig bereitgestellt“, ohne Takt. Für FRE nennt das Epic eine „tägliche Abholung“.',
+  o:['Täglich, wie bei FRE','Mit festem Verzug (bitte Minuten oder Stunden nennen)'],
+  rec:0,why:'Der FRE-Weg läuft schon so. Die Systemführung bestätigt, ob die Quelle das liefern kann.',
+  r:raci('FB:AR MW:C PO:C'),fs:'FS-02'},
+ {id:'N-FS06',uc:'uc4',t:'Wo wird der Takt geprüft?',
+  q:'An welcher Stelle wird geprüft, dass die Daten im vereinbarten Takt ankommen?',
+  ctx:'Die Middleware liegt nicht im Repository, das Backend hat keinen Zeitplan (FS-06, Nicht nachweisbar).',
+  o:['In der Middleware; im Backend gibt es dazu keinen Test','Das Backend meldet, wenn länger als ein Tag kein Eintrag ankommt'],
+  rec:0,why:'Die Middleware steuert den Takt; nichts Neues zu bauen. Eine Meldung im Backend braucht Überwachung auf der Plattform; dann ist das Plattform-Team einzubinden.',
+  r:raci('ARCH:A MW:R DEV:I PLAT:C'),fs:'FS-06'},
+ {id:'new-4',uc:'uc4',a:1,t:'Steuereinrichtung im Datensatz',
+  q:'Wie erfährt das Backend, ob eine Steuerhandlung von einer FRE oder einer Steuerbox stammt?',
+  ctx:'Heute hat ein Eintrag kein Feld dafür.',
+  o:['Neues Feld „Steuereinrichtung“ im Aufruf; die Middleware setzt es je Quelle; bestehende Einträge gelten als FRE','Ableitung aus dem Namen der Steuergruppe','Getrennte Schnittstellen je Quelle'],
+  rec:0,why:'Funktioniert auch, wenn FRE- und Steuerbox-Gruppen gleich heißen (new-5a).',
+  dep:['new-2b'],r:raci('ARCH:A DEV:R MW:C'),fs:'FS-02, FS-03'},
+ {id:'new-5a',tp:'new-5',uc:'uc4',a:1,t:'Namen',
+  q:'Können Steuergruppen der Steuerbox denselben Namen haben wie Steuergruppen der FRE?',
+  ctx:'Der Entwurf zeigt „Nord“ für beide. Stand: Die Steuergruppen der Steuerbox und ihre Benennung stehen noch nicht fest.',
+  o:['Nein, die Namen überschneiden sich nie','Ja, gleiche Namen sind möglich','Steht noch nicht fest (bitte Termin nennen)'],
+  rec:null,why:'Kein Vorschlag: Faktenfrage.',
+  r:raci('FB:AR ARCH:I'),fs:'FS-02'},
+ {id:'new-5b',tp:'new-5',uc:'uc4',a:1,t:'Zuordnung einer Adresse',
+  q:'Wie wird eine Adresse einer Steuergruppe der Steuerbox zugeordnet?',
+  ctx:'Heute (FRE): eine Steuergruppe je PLZ, Ort und Ortsteil, von Hand importiert aus einer Excel-Liste. Stand: Die Steuergruppen der Steuerbox und ihre Benennung stehen noch nicht fest.',
+  o:['Wie bei FRE: Liste PLZ / Ort / Ortsteil → Steuergruppe, ergänzt um die Steuereinrichtung','Eigene Liste oder Datenquelle für Steuerboxen (bitte nennen)','Über die Adresse ist keine Zuordnung möglich','Steht noch nicht fest (bitte Termin nennen)'],
+  rec:null,why:'Kein Vorschlag: Faktenfrage. Von der Antwort hängen die Auswahl der Steuereinrichtung und das Feld Straße ab (Use Case 1).',
+  r:raci('FB:R ARCH:A DEV:C'),fs:'FS-01, FS-02'},
+ {id:'new-5c',tp:'new-5',uc:'uc4',a:1,t:'Wiederholungsbefehl bei gleichen Namen',
+  q:'Heute wird ein Eintrag nicht gespeichert, wenn der neueste Eintrag derselben Gruppe schon dieselbe Stufe hat. Soll dieser Vergleich die Steuereinrichtung einbeziehen?',
+  ctx:'Der Vergleich betrachtet heute nur Gruppe und Stufe.',
+  o:['Ja: Vergleich über Gruppe, Steuereinrichtung und Stufe','Nein: unverändert über Gruppe und Stufe'],
+  rec:0,why:'Sonst geht eine Steuerbox-Steuerhandlung verloren, wenn eine gleichnamige FRE-Gruppe zuletzt dieselbe Stufe hatte.',
+  dep:['new-5a','new-4'],r:raci('ARCH:A DEV:R MW:C'),fs:'FS-02, FS-06'},
+ {id:'new-13a',tp:'new-13',uc:'uc4',t:'Abbildungsregel der Middleware',
+  q:'Nach welcher Regel bildet die Middleware aus einer CSV-Zeile die Werte Gruppe, Stufe und Status?',
+  ctx:'Testdaten: „FRE Region S.“, „100%“. Beispiel im Epic: „Süd“, 100, „freigegeben“. Die Regel dazwischen steht in keiner Quelle; die Abbildung im Epic (ein Anhang) liegt nicht vor.',
+  o:['Die Regel ist dokumentiert (bitte Ablageort nennen)','Die Regel steht nur im Code der Middleware; ein Auszug wird geliefert','Die Regel ist nicht bekannt'],
+  rec:null,why:'Kein Vorschlag: Faktenfrage. Dieselbe Regel wird für die Steuerbox gebraucht.',
+  r:raci('MW:R ARCH:A FB:C DEV:I'),fs:'FS-01, FS-02, FS-06'},
+ {id:'new-13b',tp:'new-13',uc:'uc4',t:'Gleiche Schreibweise der Gruppennamen',
+  q:'Wer stellt sicher, dass ein Gruppenname in den gelieferten Daten genauso geschrieben ist wie in der Adressliste?',
+  ctx:'Die Anwendung findet die Zeilen einer Steuergruppe nur bei genau gleicher Schreibweise. Die Adressliste wird von Hand aus Excel importiert, die Namen der Steuerhandlungen bildet die Middleware.',
+  o:['Eine führende Liste der Steuergruppen; Middleware und Adressliste übernehmen deren Schreibweise','Technischer Schlüssel je Steuergruppe statt des Namens','Wie heute: Abgleich von Hand'],
+  rec:0,why:'Kein Umbau der Schnittstelle nötig. Bitte in der Anmerkung nennen, wer die führende Liste pflegt.',
+  r:raci('ARCH:A FB:R MW:C'),fs:'FS-01, FS-02, FS-06'}
+];
+var QI={};Q.forEach(function(q){QI[q.id]=q});
+function tpOf(q){return q.tp||q.id}
+function topics(list){var m={},o=[];list.forEach(function(q){var k=tpOf(q);if(!m[k]){m[k]={id:k,qs:[]};o.push(m[k])}m[k].qs.push(q)});return o}
+var ALLTP=topics(Q),TPI={};ALLTP.forEach(function(t){TPI[t.id]=t});
+function tpTitle(id){return TP[id]||TPI[id].qs[0].t}
+var GROUPS=[{id:'g',t:'Grundsatz'}].concat(UC.map(function(u,i){return{id:u.id,t:'UC'+(i+1)+' · '+u.t}}));
+
+var MISSING=[
+ ['Epic, Anhang (Abbildung unter „Middleware“)','Product Owner','Kann die Frage new-13a beantworten'],
+ ['Wiki-Seite mit der grundlegenden Dokumentation','Product Owner','Grundlagen der heutigen Anwendung'],
+ ['Story zu den Filteroptionen','Product Owner','Im Wiki-Export genannt'],
+ ['Prozessbeschreibung zum Steuerbox-Rollout (liegt nur als unlesbares Bild vor)','Fachbereich (Steuerbox-Rollout)','Kann die Fragen new-5a und new-5b betreffen'],
+ ['Beispieldatei der Steuerbox-CSV','Fachbereich (Systemführung)','Frage new-2a']
+];
+var OUT=[
+ 'SR-ID-Konzept (Entwurf B): eigener Use Case mit SR-ID-Eingabe, „Herunterladen“, Leerzustand und „Zu den FAQ“. Hängt an Frage new-1.',
+ 'Segmentierter Balken für die Leistungsstufen (100 - 60 - 30 - 0): als Idee erledigt, „in einer V2 oder V3“.',
+ 'Einträge eines Tages je Steuergruppe zusammenfassen: vom Design ausgeschlossen.',
+ 'Farbunterschied zwischen 100 % und 30 % abgeregelt: als Idee erledigt.',
+ 'Sortierung durch den Nutzer: als Idee erledigt; der Entwurf zeigt keine.',
+ 'Trennung des Epics in FRE und Steuerbox (Kommentar im Epic): Planung, kein Verhalten.'
+];
+
+/* ---------- Zustand ---------- */
+var EMB={};try{EMB=JSON.parse(document.getElementById('saved').textContent||'{}')}catch(e){}
+var FILE_ID=EMB.id||'oeffentlich', KEY='steuerbox-uebersicht:'+SPEC+':'+FILE_ID;
+var S=EMB.S||{role:'',name:'',a:{}};
+try{var loc=JSON.parse(localStorage.getItem(KEY)||'null');if(loc&&loc.a){S=loc}}catch(e){}
+if(S.role&&!P[S.role]){S.role=''}
+var F={p:S.role,open:false,norec:false};
+var main=document.getElementById('main'),nav=document.getElementById('nav'),roleSel=document.getElementById('role');
+
+function persist(){
+ var ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
+ var t=new Date(),hh=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+ document.getElementById('saveState').textContent=ok?('Zwischenstand in diesem Browser gesichert, '+hh+' Uhr. Zum Weitergeben: „Mit Antworten speichern“.'):'Dieser Browser sichert keinen Zwischenstand. Bitte „Mit Antworten speichern“ nutzen.';
+}
+function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function ans(id){return S.a[id]||{o:'',t:'',n:''}}
+function isDone(q){var a=ans(q.id);return a.o!==''&&(a.o!=='x'||a.t.trim()!=='')}
+function isMoot(q){return !!q.a&&ans('new-1').o==='1'}
+function isOpen(q){return !isMoot(q)&&!isDone(q)}
+function has(q,p,letters){var v=q.r[p]||'';for(var i=0;i<letters.length;i++){if(v.indexOf(letters[i])>=0){return true}}return false}
+function mine(q,p){return p===''||has(q,p,'AR')}
+function decider(q){for(var i=0;i<ORDER.length;i++){if(has(q,ORDER[i],'A')){return ORDER[i]}}return ORDER[0]}
+function names(q,l){var n=ORDER.filter(function(p){return has(q,p,l)});if(!n.length&&l==='R'){n=[decider(q)]}return n.map(function(p){return P[p].k}).join(', ')}
+function answerText(q){var a=ans(q.id);if(a.o===''){return ''}if(a.o==='x'){return 'Sonstiges: '+a.t}return 'ABCDE'.charAt(+a.o)+': '+q.o[+a.o]}
+function count(fn){return Q.filter(fn).length}
+function roleName(){return S.role?P[S.role].k:'alle Rollen'}
+
+/* ---------- Bausteine ---------- */
+function pchip(p,outline,label){var c=P[p].c;return '<span class="pc'+(outline?' o':'')+'" style="'+(outline?'color:'+c+';border-color:'+c:'background:'+c+';border-color:'+c)+'">'+h(label||P[p].k)+'</span>'}
+function whoHtml(q){
+ var d=decider(q),R=ORDER.filter(function(p){return has(q,p,'R')&&p!==d});
+ return 'Entscheidet '+pchip(d)+(R.length?' · Antwort liefert '+R.map(function(p){return pchip(p,true)}).join(' '):'');
+}
+function statusChip(q){
+ if(isMoot(q)){return '<span class="p ne" data-st>entfällt bei Entwurf B</span>'}
+ return isDone(q)?'<span class="p ok" data-st>beantwortet</span>':'<span class="p warn" data-st>offen</span>';
+}
+function qCard(q){
+ var a=ans(q.id),moot=isMoot(q),k='ABCDE',s='';
+ s+='<article class="q'+(moot?' moot':'')+'" data-q="'+q.id+'" style="--pc:'+P[decider(q)].c+'">';
+ s+='<div class="qhead"><span class="sec">'+q.id+'</span>'+statusChip(q)+(q.a?'<span class="p ne">nur Entwurf A</span>':'')+(q.rec==null?'<span class="p no">ohne Vorschlag</span>':'');
+ s+='<span class="who">'+whoHtml(q)+'</span></div>';
+ s+='<h3>'+h(q.t)+'</h3><p class="qq">'+h(q.q)+'</p>';
+ if(q.ctx){s+='<div class="ctx">'+q.ctx+'</div>'}
+ s+='<div class="opts">';
+ q.o.forEach(function(o,i){
+  var on=a.o===String(i);
+  s+='<label class="opt'+(on?' sel':'')+'"><input type="radio" name="r-'+q.id+'" value="'+i+'"'+(on?' checked':'')+'><span class="k">'+k.charAt(i)+'</span><span>'+h(o)+(q.rec===i?'<span class="p pri rec">Vorschlag</span>':'')+'</span></label>';
+ });
+ var ox=a.o==='x';
+ s+='<label class="opt'+(ox?' sel':'')+'"><input type="radio" name="r-'+q.id+'" value="x"'+(ox?' checked':'')+'><span>Sonstiges:</span><input type="text" data-f="t" value="'+h(a.t)+'" placeholder="eigene Antwort"></label>';
+ s+='</div>';
+ s+='<input class="note" type="text" data-f="n" value="'+h(a.n)+'" placeholder="Anmerkung (freiwillig)">';
+ if(q.why){s+='<p class="why">'+(q.rec!=null?'<b>Vorschlag '+k.charAt(q.rec)+':</b> ':'')+h(q.why)+'</p>'}
+ s+='<div class="qfoot"><span>Betrifft: '+h(q.fs)+'</span>';
+ if(q.dep){s+='<span>Hängt ab von: '+q.dep.map(function(d){return '<a href="#fragen:'+d+'">'+d+'</a>'}).join(', ')+'</span>'}
+ s+='<button class="link" type="button" data-clear>Antwort löschen</button></div></article>';
+ return s;
+}
+function tpState(id){var qs=TPI[id].qs,d=qs.filter(function(q){return isDone(q)||isMoot(q)}).length;return d+' von '+qs.length+' Teilfragen erledigt'}
+function tpCard(tp){
+ if(TPI[tp.id].qs.length===1){return qCard(tp.qs[0])}
+ return '<section class="tp" data-tp="'+tp.id+'"><div class="tph"><span class="sec">'+tp.id+'</span><h3>'+h(tpTitle(tp.id))+'</h3><span class="small" data-tpst>'+tpState(tp.id)+'</span></div>'+tp.qs.map(qCard).join('')+'</section>';
+}
+function miniRow(q){
+ return '<tr><td><a class="sec" href="#fragen:'+q.id+'">'+q.id+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td><td>'+pchip(decider(q))+'</td><td>'+h(names(q,'R'))+'</td><td>'+statusChip(q)+'</td></tr>';
+}
+function standChip(c){return c==='b'?'<span class="p ok">gebaut</span>':c==='n'?'<span class="p pri">neu</span>':'<span class="p warn">neu, unter Vorbehalt</span>'}
+function wire(){
+ return '<div class="wfs">'+
+  '<div class="wf"><b>Entwurf A · über die Adresse</b><div class="wfb"><span>PLZ</span><span>Ort</span><span>Ortsteil</span><span class="b">Steuergruppe ermitteln</span></div>'+
+  '<div class="wfb"><span>Von</span><span>Bis</span><span>Steuergruppe ▾</span><span>☐ Steuerbox</span><span>☐ FRE</span></div>'+
+  '<div class="wft">Tabelle: Steuerhandlungen aller Steuergruppen<br>Datum · Uhrzeit · Steuergruppe · Steuereinrichtung · Status · Leistung · Grund</div></div>'+
+  '<div class="wf"><b>Entwurf B · über die Kennung der Anlage</b><div class="wfb"><span>Von</span><span>Bis</span><span>SR-ID</span></div>'+
+  '<div class="wft">Tabelle: Steuerhandlungen der eigenen Anlage<br>Datum · Uhrzeit · SR-ID · Status · Leistung · Grund</div>'+
+  '<div class="wfb"><span class="b">Herunterladen</span></div></div></div>';
+}
+
+/* ---------- Ansichten ---------- */
+var V={};
+V.ueberblick=function(){
+ var rows=0,built=0;UC.forEach(function(u){rows+=u.rows.length;u.rows.forEach(function(r){if(r[1]==='b'){built++}})});
+ var live=Q.filter(function(q){return !isMoot(q)}),open=count(isOpen);
+ var tpOpen=ALLTP.filter(function(t){return t.qs.some(isOpen)}).length;
+ var norec=Q.filter(function(q){return q.rec==null}),norecOpen=norec.filter(isOpen).length;
+ var s='<h1>Anzeige von Steuerhandlungen: Erweiterung um Steuerboxen</h1>';
+ s+='<p class="lead-in">Die Anwendung auf der Website zeigt heute die Steuerhandlungen der Funkrundsteuerempfänger (FRE). Mit dem Rollout der Steuerboxen soll sie auch deren Steuerhandlungen zeigen. Diese Seite fasst zusammen, was dafür feststeht, und sammelt die Antworten auf das, was noch offen ist.</p>';
+ s+='<div class="sources"><span class="src"><b>Grundlage</b>feature-set-steuerbox.md, Version '+SPEC+'</span><span class="src"><b>Stand</b>'+STAND+'</span><span class="src"><b>Epic</b>Epic, Teil 2</span><span class="src"><b>Szenarien nach</b>Entwurf A</span></div>';
+ if(ANON){s+='<div class="banner info">ⓘ <span>Anonymisiertes Beispiel. Namen, Orte, Kennungen und Oberflächentexte sind ersetzt; Aufbau und Fragestellung sind erhalten.</span></div>'}
+ if(!isDone(QI['new-1'])){s+='<div class="banner">⚠ <span>Zuerst zu klären: <a href="#fragen:new-1">Welcher Entwurf gilt?</a> Es gibt zwei Entwürfe mit verschiedenem Konzept. Von der Antwort hängt ab, welche der übrigen Fragen sich überhaupt stellen.</span></div>'}
+ else if(ans('new-1').o==='1'){s+='<div class="banner info">ⓘ <span>Gewählt ist Entwurf B (SR-ID). Use Case 1 und alle Fragen mit der Marke „nur Entwurf A“ entfallen. Die Szenarien dieser Seite beschreiben Entwurf A und müssen dann neu geschrieben werden.</span></div>'}
+ s+='<div class="kpis"><div class="kpi"><b>'+UC.length+'</b><span>Use Cases</span></div><div class="kpi"><b>'+rows+'</b><span>Szenarien, davon '+built+' gebaut</span></div><div class="kpi"><b>'+ALLTP.length+'</b><span>Themen, davon '+tpOpen+' offen</span></div><div class="kpi"><b>'+open+'</b><span>offene Teilfragen von '+live.length+'</span></div><div class="kpi"><b>'+norecOpen+'</b><span>davon ohne Vorschlag</span></div></div>';
+ s+='<div class="callout"><b>Woher die Zahlen kommen</b><p>Das Feature-Set nennt '+SPEC_OPEN+' offene Stellen und '+SPEC_NN+' nicht nachweisbare Aussagen. Diese Seite führt dieselben Punkte als '+ALLTP.length+' Themen. Kein Thema ist neu.</p><p>Ein Thema mit mehreren Fragen ist in Teilfragen zerlegt, damit jede mit einer Auswahl beantwortet ist: zusammen '+Q.length+'. Für '+(Q.length-norec.length)+' davon liegt ein begründeter Vorschlag vor, der sich in einem Schritt übernehmen lässt. <a href="#fragen" data-norec="1">'+norec.length+' Teilfragen haben keinen Vorschlag</a>, weil nur die zuständige Stelle die Antwort kennt.</p></div>';
+ /* Verteilung nach Rollen */
+ s+='<h2>Wer entscheidet</h2><p class="small">Jede Rolle hat eine Farbe. Gefüllt: Die Rolle entscheidet. Rahmen: Die Rolle liefert die Antwort. Ein Klick zeigt die Fragen der Rolle.</p><div class="stack">';
+ ORDER.forEach(function(p){var n=count(function(q){return has(q,p,'A')});if(n){s+='<i style="width:'+(100*n/Q.length)+'%;background:'+P[p].c+'" title="'+h(P[p].k)+': '+n+'"></i>'}});
+ s+='</div><div class="legend">';
+ ORDER.forEach(function(p){
+  var a=count(function(q){return has(q,p,'A')}),r=count(function(q){return has(q,p,'R')&&!has(q,p,'A')}),o=count(function(q){return isOpen(q)&&has(q,p,'AR')});
+  s+='<a href="#fragen" data-p="'+p+'">'+pchip(p)+' entscheidet '+a+' · liefert '+r+(a+r?' · offen '+o:'')+'</a>';
+ });
+ s+='</div>';
+ s+='<h2>Use Cases</h2><div class="cards">';
+ UC.forEach(function(u,i){
+  var qs=Q.filter(function(q){return q.uc===u.id&&!isMoot(q)}),d=qs.filter(isDone).length,pct=qs.length?Math.round(100*d/qs.length):100;
+  var tn=ALLTP.filter(function(t){return t.qs[0].uc===u.id}).length;
+  s+='<a class="card" href="#'+u.id+'"><div class="top"><span class="badge">UC'+(i+1)+'</span><span class="title">'+h(u.t)+'</span></div><div class="small">'+h(u.actor)+' · '+u.rows.length+(u.rows.length===1?' Szenario':' Szenarien')+' · '+tn+' Themen</div><div class="bar"><i style="width:'+pct+'%"></i></div><div class="small">'+d+' von '+qs.length+' Teilfragen beantwortet. Offen nach Rolle:</div><div class="foot">';
+  ORDER.forEach(function(p){var n=qs.filter(function(q){return isOpen(q)&&decider(q)===p}).length;if(n){s+=pchip(p,false,P[p].s+' '+n)}});
+  s+='</div></a>';
+ });
+ s+='</div>';
+ var gq=Q.filter(function(q){return q.uc==='g'});
+ s+='<h2>Grundsatzfragen</h2><div class="panel wide"><table><tr><th style="width:110px">Nr.</th><th>Frage</th><th>Entscheidet</th><th>Antwort liefert</th><th style="width:150px">Stand</th></tr>'+gq.map(miniRow).join('')+'</table></div>';
+ s+='<h2>Die zwei Entwürfe</h2><p class="small">Schema, kein Abbild. Die Szenarien dieser Seite beschreiben Entwurf A.</p>'+wire();
+ if(DESIGN_IMG.indexOf('data:')===0){s+='<h2>Entwurf A als Bild</h2><p class="small"><a href="'+DESIGN_URL+'a" target="_blank" rel="noopener">Entwurf A öffnen</a> · <a href="'+DESIGN_URL+'b" target="_blank" rel="noopener">Entwurf B öffnen</a></p><img class="shot" alt="Entwurf A: Ermittlung der Steuergruppe und Tabelle Letzte Regelungen" src="'+DESIGN_IMG+'">'}
+ s+='<div class="callout"><b>So nutzen Sie diese Seite</b><ol><li>Die Seite zeigt zuerst alles. Links unter „Ansicht“ lässt sich eine Rolle wählen; dann stehen deren Fragen vorn.</li><li>Je Frage eine Antwort wählen oder unter „Sonstiges“ eine eigene eintragen. Ein Vorschlag ist markiert und begründet; er ist keine Vorgabe.</li><li>Zum Schluss „Mit Antworten speichern“ wählen. Das erzeugt eine Kopie dieser Datei mit den Antworten, zum Zurückschicken.</li></ol></div>';
+ return s;
+};
+function ucView(u,i){
+ var s='<div class="crumb"><a href="#ueberblick">Überblick</a> › Use Case</div><h1>UC'+(i+1)+' · '+h(u.t)+'</h1>';
+ s+='<div class="meta"><span>Akteur: '+h(u.actor)+'</span><span>Quelle: '+h(u.src)+'</span><span>Im Feature-Set: '+h(u.fs)+'</span></div>';
+ if(u.id==='uc1'&&ans('new-1').o==='1'){s+='<div class="banner info">ⓘ <span>Bei Entwurf B (SR-ID) entfällt dieser Use Case.</span></div>'}
+ s+='<div class="callout"><b>Ziel</b><p>'+h(u.goal)+'</p></div>';
+ s+='<h2>Szenarien</h2><div class="panel wide"><table><tr><th style="width:92px">Nr.</th><th>Ausgangslage</th><th>Aktion</th><th>Erwartetes Ergebnis</th><th style="width:150px">Stand</th></tr>';
+ u.rows.forEach(function(r){s+='<tr><td class="mono">'+r[0]+'</td><td>'+h(r[2])+'</td><td>'+h(r[3])+'</td><td>'+h(r[4])+'</td><td>'+standChip(r[1])+'</td></tr>'});
+ s+='</table></div>';
+ if(u.note){s+='<p class="small">'+h(u.note)+'</p>'}
+ var qs=Q.filter(function(q){return q.uc===u.id}),m=qs.filter(function(q){return mine(q,S.role)}),o=qs.filter(function(q){return !mine(q,S.role)});
+ s+='<h2>'+(S.role?'Fragen an: '+h(P[S.role].k):'Offene Punkte zu diesem Use Case')+'</h2>';
+ s+=m.length?topics(m).map(tpCard).join(''):'<p class="small">Zu diesem Use Case gibt es keine Frage für diese Rolle.</p>';
+ if(o.length){s+='<h2>Klären andere</h2><div class="panel wide"><table><tr><th style="width:120px">Nr.</th><th>Frage</th><th>Entscheidet</th><th>Antwort liefert</th><th style="width:150px">Stand</th></tr>'+o.map(miniRow).join('')+'</table></div>'}
+ return s;
+}
+UC.forEach(function(u,i){V[u.id]=function(){return ucView(u,i)}});
+V.fragen=function(){
+ var s='<h1>Offene Fragen</h1><p class="lead-in">Jede Frage hat feste Antworten und „Sonstiges“. Der farbige Rand zeigt die Rolle, die entscheidet.</p>';
+ s+='<div class="tools"><button class="chip'+(F.p===''?' on':'')+'" data-p="">Alle ('+Q.length+')</button>';
+ ORDER.forEach(function(p){var n=count(function(q){return mine(q,p)});if(n){s+='<button class="chip'+(F.p===p?' on':'')+'" data-p="'+p+'"><i style="background:'+P[p].c+'"></i>'+h(P[p].k)+' ('+n+')</button>'}});
+ s+='</div><div class="tools"><button class="chip'+(F.open?' on':'')+'" data-open>Nur offene</button><button class="chip'+(F.norec?' on':'')+'" data-norec>Nur ohne Vorschlag ('+count(function(q){return q.rec==null})+')</button><button class="btn sec2" type="button" data-recs>Vorschläge für die gezeigten offenen Fragen übernehmen</button></div>';
+ var list=Q.filter(function(q){return mine(q,F.p)&&(!F.open||isOpen(q))&&(!F.norec||q.rec==null)});
+ if(!list.length){s+='<p class="small">Keine Frage für diese Auswahl.</p>'}
+ GROUPS.forEach(function(g){var qs=list.filter(function(q){return q.uc===g.id});if(qs.length){s+='<h2>'+h(g.t)+'</h2>'+topics(qs).map(tpCard).join('')}});
+ return s;
+};
+V.raci=function(){
+ var s='<h1>Zuständigkeiten</h1><p class="lead-in">Wer entscheidet welche Frage, und wer liefert die Antwort dazu?</p>';
+ s+='<div class="banner info">ⓘ <span>Die Zuordnung ist ein Vorschlag. Keine Quelle legt fest, wer welche Frage entscheidet. Fachliche Anforderungen, Systemführung und Steuerbox-Rollout sind hier eine Rolle: Fachbereich.</span></div>';
+ s+='<div class="kpis">'+ORDER.map(function(p){var a=count(function(q){return has(q,p,'A')}),r=count(function(q){return has(q,p,'R')&&!has(q,p,'A')});return '<div class="kpi" style="border-top:4px solid '+P[p].c+'"><b>'+a+'</b><span>'+h(P[p].k)+' entscheidet · liefert '+r+'</span></div>'}).join('')+'</div>';
+ s+='<p class="small"><b>A</b> entscheidet (genau eine Rolle je Frage) · <b>R</b> liefert die Antwort oder arbeitet sie aus · <b>C</b> wird vorher gefragt · <b>I</b> wird informiert</p>';
+ s+='<div class="panel wide"><table class="raci"><tr><th style="width:118px">Nr.</th><th>Frage</th>'+ORDER.map(function(p){return '<th class="c">'+pchip(p,false,P[p].s)+'</th>'}).join('')+'<th style="width:120px">Stand</th></tr>';
+ GROUPS.forEach(function(g){
+  s+='<tr class="grp"><td colspan="'+(ORDER.length+3)+'">'+h(g.t)+'</td></tr>';
+  Q.filter(function(q){return q.uc===g.id}).forEach(function(q){
+   s+='<tr><td><a class="sec" href="#fragen:'+q.id+'">'+q.id+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td>'+ORDER.map(function(p){var v=q.r[p]||'',c=P[p].c;return '<td class="c">'+v.split('').map(function(x){return x==='A'?'<span class="r" style="background:'+c+';border-color:'+c+';color:#fff">A</span>':x==='R'?'<span class="r" style="color:'+c+';border-color:'+c+'">R</span>':'<span class="r '+x+'">'+x+'</span>'}).join(' ')+'</td>'}).join('')+'<td>'+statusChip(q)+'</td></tr>';
+  });
+ });
+ s+='</table></div>';
+ s+='<h2>Rollen</h2><div class="panel wide"><table><tr><th>Rolle</th><th>Wer das ist</th>'+(ANON?'':'<th>Personen laut Epic</th>')+'<th>Aufgabe bei der Klärung</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td>'+(ANON?'':'<td>'+h(P[p].who)+'</td>')+'<td>'+h(P[p].job)+'</td></tr>'}).join('')+'</table></div>';
+ s+='<p class="small">Weitere Stelle, falls Entwurf B (SR-ID) gilt: Datenschutz und Informationssicherheit, weil dann Daten einer einzelnen Anlage ohne Anmeldung abrufbar wären.</p>';
+ s+='<h2>Fehlende Unterlagen</h2><div class="panel wide"><table><tr><th>Unterlage</th><th>Kann liefern</th><th>Wozu</th></tr>'+MISSING.map(function(m){return '<tr><td>'+h(m[0])+'</td><td>'+h(m[1])+'</td><td>'+h(m[2])+'</td></tr>'}).join('')+'</table></div>';
+ return s;
+};
+function summaryText(){
+ var d=new Date(),ds=('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+ var t='Steuerbox, Epic, Teil 2: Antworten auf offene Fragen\nGrundlage: feature-set-steuerbox.md, Version '+SPEC+'\nBeantwortet von: '+(S.name||'(kein Name)')+', '+ds+'\n';
+ GROUPS.forEach(function(g){
+  var qs=Q.filter(function(q){return q.uc===g.id&&isDone(q)});if(!qs.length){return}
+  t+='\n'+g.t+'\n';
+  qs.forEach(function(q){var a=ans(q.id);t+='- '+q.id+' '+(q.tp?tpTitle(q.tp)+': ':'')+q.t+'\n  Antwort '+answerText(q)+(isMoot(q)?' (entfällt bei Entwurf B)':'')+'\n'+(a.n?'  Anmerkung: '+a.n+'\n':'')});
+ });
+ var open=Q.filter(isOpen);t+='\nNoch offen ('+open.length+'): '+open.map(function(q){return q.id}).join(', ')+'\n';
+ return t;
+}
+V.antworten=function(){
+ var done=Q.filter(isDone),s='<h1>Antworten</h1><p class="lead-in">Alle bisher gegebenen Antworten. Der Zwischenstand liegt nur in diesem Browser. Zum Weitergeben die Datei mit Antworten speichern oder den Text kopieren.</p>';
+ s+='<div class="tools"><input class="name" type="text" id="name" placeholder="Ihr Name und Bereich" value="'+h(S.name)+'"><button class="btn" type="button" data-save>Mit Antworten speichern</button><button class="btn sec2" type="button" data-copy>Text kopieren</button><button class="link" type="button" data-reset>Alle Antworten löschen</button></div>';
+ if(!done.length){s+='<p class="small">Noch keine Antwort.</p>'}
+ else{
+  s+='<div class="panel wide"><table><tr><th style="width:118px">Nr.</th><th>Frage</th><th>Entscheidet</th><th>Antwort</th><th>Anmerkung</th></tr>';
+  done.forEach(function(q){s+='<tr><td><a class="sec" href="#fragen:'+q.id+'">'+q.id+'</a></td><td>'+h((q.tp?tpTitle(q.tp)+': ':'')+q.t)+'</td><td>'+pchip(decider(q),false,P[decider(q)].s)+'</td><td>'+h(answerText(q))+(isMoot(q)?' <span class="p ne">entfällt</span>':'')+'</td><td>'+h(ans(q.id).n)+'</td></tr>'});
+  s+='</table></div>';
+ }
+ s+='<h2>Als Text</h2><textarea id="sum" readonly>'+h(summaryText())+'</textarea>';
+ return s;
+};
+V.quellen=function(){
+ var s='<h1>Abgrenzung und Quellen</h1><p class="lead-in">Diese Seite ist eine Lesefassung von <span class="mono">feature-set-steuerbox.md</span>, Version '+SPEC+'. Verbindlich ist das Feature-Set. Die Aufteilung in vier Use Cases, die Antwortoptionen und die Zuständigkeiten sind Vorschläge und keine Anforderungen.</p>';
+ s+='<h2>Nicht Teil dieser Ausbaustufe</h2><div class="panel"><ul class="plain">'+OUT.map(function(o){return '<li>'+h(o)+'</li>'}).join('')+'</ul></div>';
+ s+='<h2>Quellen</h2><div class="panel"><ul class="plain">'+
+  '<li>Epic: Zielsetzung, Teil 1 (FRE), Teil 2 (Steuerbox), Stakeholder.</li>'+
+  '<li>Entwurfsdatei: Entwurf A'+fig('a','Entwurf A')+', im Epic verlinkt; Entwurf B'+fig('b','Entwurf B')+', SR-ID; Kommentare beider Entwürfe.</li>'+
+  '<li>Wiki-Seite zu den Filteroptionen.</li>'+
+  '<li>Testdaten der FRE-Abholung (drei Zeilen, keine Steuerbox-Zeile).</li>'+
+  '<li>Die heutige Anwendung (Frontend und Backend), für alles mit dem Stand „gebaut“.</li></ul></div>';
+ s+='<h2>Begriffe</h2><div class="panel wide"><table>'+
+  '<tr><td style="width:170px"><b>Steuerhandlung</b></td><td>Ein Befehl an eine Steuergruppe: Abregelung auf eine Stufe oder Freigabe. In der Tabelle eine Zeile.</td></tr>'+
+  '<tr><td><b>Steuergruppe</b></td><td>Gruppe von Anlagen, die gemeinsam gesteuert werden. Bisher in der Anwendung „Region“ oder „Schaltgruppe“.</td></tr>'+
+  '<tr><td><b>Steuereinrichtung</b></td><td>Das Gerät an der Anlage: Funkrundsteuerempfänger (FRE) oder Steuerbox.</td></tr>'+
+  '<tr><td><b>Middleware</b></td><td>Das System, das die gelieferten CSV-Dateien liest und die Steuerhandlungen an die Anwendung meldet.</td></tr>'+
+  '<tr><td><b>Thema, Teilfrage</b></td><td>Ein Thema ist eine offene Stelle oder eine nicht nachweisbare Aussage des Feature-Sets. Eine Teilfrage ist der Teil davon, der sich mit einer Auswahl beantworten lässt.</td></tr>'+
+  '<tr><td><b>gebaut / neu</b></td><td>„gebaut“: Die heutige Anwendung verhält sich schon so. „neu“: Entschieden, noch zu bauen.</td></tr></table></div>';
+ return s;
+};
+
+/* ---------- Navigation ---------- */
+var cur='ueberblick';
+function renderNav(){
+ function link(id,label,n,cls){return '<a href="#'+id+'"'+(cur===id?' class="active"':'')+'><span>'+label+'</span>'+(n==null?'':'<span class="cnt '+(cls||'')+'">'+n+'</span>')+'</a>'}
+ var s=link('ueberblick','Überblick');
+ s+='<div class="group">Use Cases</div>';
+ UC.forEach(function(u,i){var n=count(function(q){return q.uc===u.id&&isOpen(q)&&mine(q,S.role)});s+=link(u.id,'UC'+(i+1)+' '+h(u.t),n,n?'warn':'ok')});
+ var my=count(function(q){return isOpen(q)&&mine(q,S.role)});
+ s+='<div class="group">Klärung</div>'+link('fragen','Offene Fragen',my,my?'warn':'ok')+link('raci','Zuständigkeiten')+link('antworten','Antworten',count(isDone))+link('quellen','Abgrenzung und Quellen');
+ s+='<div class="small" style="margin:10px 8px 0">Zahlen: offene Teilfragen, '+h(roleName())+'.</div>';
+ nav.innerHTML=s;
+}
+function render(focus){
+ main.innerHTML=(V[cur]||V.ueberblick)();
+ renderNav();
+ if(focus){var el=main.querySelector('[data-q="'+focus+'"]');if(el){el.scrollIntoView({block:'start'});return}}
+}
+function route(target){
+ var hsh=(typeof target==='string'?target:(location.hash||'#ueberblick').slice(1)).split(':'),id=hsh[0],focus=hsh[1];
+ if(!V[id]){id='ueberblick'}
+ if(id==='fragen'&&focus&&QI[focus]){F.p='';F.open=false;F.norec=false}
+ cur=id;render(focus);if(!focus){window.scrollTo(0,0)}
+}
+function refreshCard(card,q){
+ card.classList.toggle('moot',isMoot(q));
+ var st=card.querySelector('[data-st]');if(st){st.outerHTML=statusChip(q)}
+ card.querySelectorAll('.opt').forEach(function(l){var r=l.querySelector('input[type=radio]');l.classList.toggle('sel',r.checked)});
+ var tp=card.closest('.tp');if(tp){tp.querySelector('[data-tpst]').textContent=tpState(tp.getAttribute('data-tp'))}
+}
+function setAns(id,patch){var a=ans(id);for(var k in patch){a[k]=patch[k]}S.a[id]=a;persist()}
+function keepScroll(){var y=window.scrollY;render();window.scrollTo(0,y)}
+
+main.addEventListener('change',function(ev){
+ var card=ev.target.closest('.q');if(!card||ev.target.type!=='radio'){return}
+ var id=card.getAttribute('data-q');setAns(id,{o:ev.target.value});
+ if(id==='new-1'){keepScroll()}else{refreshCard(card,QI[id]);renderNav()}
+});
+main.addEventListener('input',function(ev){
+ if(ev.target.id==='name'){S.name=ev.target.value;persist();return}
+ var card=ev.target.closest('.q'),f=ev.target.getAttribute('data-f');if(!card||!f){return}
+ var id=card.getAttribute('data-q'),patch={};patch[f]=ev.target.value;
+ if(f==='t'&&ev.target.value!==''){patch.o='x';card.querySelector('input[value="x"]').checked=true}
+ setAns(id,patch);refreshCard(card,QI[id]);renderNav();
+});
+main.addEventListener('click',function(ev){
+ var t=ev.target.closest?ev.target.closest('button'):null;if(!t){return}
+ if(t.hasAttribute('data-clear')){delete S.a[t.closest('.q').getAttribute('data-q')];persist();keepScroll();return}
+ if(t.hasAttribute('data-p')){F.p=t.getAttribute('data-p');render();return}
+ if(t.hasAttribute('data-open')){F.open=!F.open;render();return}
+ if(t.hasAttribute('data-norec')){F.norec=!F.norec;render();return}
+ if(t.hasAttribute('data-recs')){
+  var list=Q.filter(function(q){return mine(q,F.p)&&isOpen(q)&&q.rec!=null&&(!F.norec)});
+  if(!list.length){alert('Für die gezeigten offenen Fragen gibt es keinen Vorschlag.');return}
+  if(confirm('Für '+list.length+' offene Fragen den markierten Vorschlag als Antwort eintragen? Jede Antwort lässt sich danach ändern.')){list.forEach(function(q){setAns(q.id,{o:String(q.rec)})});keepScroll()}
+  return;
+ }
+ if(t.hasAttribute('data-save')){saveHtml();return}
+ if(t.hasAttribute('data-copy')){var ta=document.getElementById('sum');ta.value=summaryText();ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}if(!ok&&navigator.clipboard){navigator.clipboard.writeText(ta.value)}t.textContent='Kopiert';return}
+ if(t.hasAttribute('data-reset')){if(confirm('Alle Antworten in diesem Browser löschen?')){S.a={};persist();render()}return}
+});
+function saveHtml(){
+ var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+ var clone=document.documentElement.cloneNode(true);
+ ['#main','#nav','#role','#saveState'].forEach(function(sel){clone.querySelector(sel).innerHTML=''});
+ clone.querySelector('#saved').textContent=JSON.stringify({id:'f'+d.getTime().toString(36),at:d.toISOString(),S:S}).replace(/</g,'\\u003c');
+ var blob=new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'});
+ var who=(S.name||(S.role?P[S.role].k:'')).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'antworten';
+ var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='steuerbox-uebersicht-'+who+'-'+ds+'.html';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+ document.getElementById('saveState').textContent='Datei „'+a.download+'“ erzeugt. Sie liegt im Download-Ordner und enthält alle Antworten.';
+}
+document.getElementById('btnSave').addEventListener('click',saveHtml);
+roleSel.innerHTML='<option value="">Gesamt (alle Rollen)</option>'+ORDER.map(function(p){return '<option value="'+p+'"'+(S.role===p?' selected':'')+'>'+h(P[p].k)+'</option>'}).join('');
+roleSel.addEventListener('change',function(){S.role=roleSel.value;F.p=S.role;persist();render()});
+/* Interne Links selbst behandeln: funktioniert auch dort, wo der Browser keine #-Sprünge zulässt. */
+document.addEventListener('click',function(ev){
+ var a=ev.target.closest?ev.target.closest('a[href^="#"]'):null;if(!a){return}
+ ev.preventDefault();var target=a.getAttribute('href').slice(1);
+ if(a.hasAttribute('data-p')){F.p=a.getAttribute('data-p');F.open=false;F.norec=false}
+ if(a.hasAttribute('data-norec')){F.p='';F.open=false;F.norec=true}
+ try{history.pushState(null,'','#'+target)}catch(e){}
+ route(target);
+});
+window.addEventListener('popstate',function(){route()});
+if(EMB.at){document.getElementById('saveState').textContent='Diese Datei enthält gespeicherte Antworten'+(S.name?' von '+S.name:'')+'.'}
+route();
+})();
+</script>
+</body></html>

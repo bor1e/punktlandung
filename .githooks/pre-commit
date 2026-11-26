@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STAGED="$(git diff --cached --name-only)"
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+VERSION_STAGED=false
+CONTENT_STAGED=false
+
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  if [ "$file" = "VERSION" ]; then
+    VERSION_STAGED=true
+  fi
+  case "$file" in
+    skills/*|example.html|scripts/*|README.md)
+      CONTENT_STAGED=true
+      ;;
+  esac
+done <<< "$STAGED"
+
+if [ "$VERSION_STAGED" = false ] && [ "$CONTENT_STAGED" = true ]; then
+  ./scripts/bump-version.sh patch >/dev/null
+  git add VERSION skills/open-points-overview/SKILL.md
+fi
+
+node scripts/validate.mjs
