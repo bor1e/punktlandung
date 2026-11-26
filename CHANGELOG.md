@@ -2,6 +2,20 @@
 
 Newest entry first. Each entry says what changed and why.
 
+## 2.5.0 (2026-11-26)
+
+Backwards-compatible decision-governance additions for `context.json` and extraction guardrails inspired by *"Taking Decisions Like a Court"*:
+
+- **Optional `context.json` governance fields (`schema/context.schema.json`):** Added optional `principles` (ordered collision-resolution hierarchy), `defaultRule` (standing burden-of-proof / fallback rule), and `parties[].consultWhen` (mandatory consultation/mandate trigger).
+- **Validator enforcement (`scripts/validate.mjs`):** Validates types and non-empty strings when `principles`, `defaultRule`, or `parties[].consultWhen` are present.
+- **Responsibilities view (`template/overview.html`):** Renders `principles`, `defaultRule`, and `consultWhen` (properly HTML-escaped) on the `#raci` tab in both DE and EN while keeping question cards untouched.
+- **AI extraction guardrails (`skills/open-points-overview/SKILL.md`):** Added disputed-and-relevant filtering, zero-discretion constraint checks, reversibility triage, principle-grounded proposal reasoning, and post-merge dissent / review-trigger guidance.
+- **Example & tests (`examples/generic-plan/context.json`, `test/punktlandung.test.mjs`):** Demonstrated the new governance fields in the English example (keeping `examples/steuerbox/context.json` unchanged for backwards compatibility) and added schema validation + `#raci` rendering tests.
+- **Nested open-question headings & resolved sections (`scripts/init-case.mjs`):** Tracks heading depth (`openSectionLevel`) so sub-headings (e.g. `### Security` under `## Open Questions`) keep extracting bullets, while standalone `## Decisions` / resolved-decision headings are no longer misclassified as open questions.
+- **Full Draft 2020-12 JSON Schema validation (`scripts/validate.mjs`):** Enforces `schema/context.schema.json` and `schema/spec.schema.json` directly inside `validatePayload` (`$ref`, `oneOf`, `anyOf`, `additionalProperties`, `required`, `minItems`/`maxItems`, `pattern`, `enum`, bounds).
+- **Latest-wins for corrected replies (`template/overview.html`, `scripts/merge-answers.mjs`):** Embeds an ISO timestamp (`at`) in `PKL1:` answer codes and supersedes earlier answers from the same non-anonymous `(role, respondent)` with a warning instead of raising a false conflict, while keeping disagreements between distinct people as exit-2 conflicts.
+- **Documentation accuracy (`README.md`, `docs/index.html`):** Fixed Steuerbox party count (`7 roles`, matching `examples/steuerbox/context.json`).
+
 ## 2.4.0 (2026-11-26)
 
 Official GitHub Spec Kit extension integration (`hooks.after_clarify`):

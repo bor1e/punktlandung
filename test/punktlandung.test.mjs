@@ -111,6 +111,30 @@ describe('validatePayload invariants', () => {
     assert.ok(validatePayload({ context: baseCtx, spec: badCount }, 'count').errs.some((e) => e.includes('non-negative integer')));
   });
 
+  it('accepts valid decision-governance fields (principles, defaultRule, consultWhen) and rejects invalid values', () => {
+    const goodCtx = structuredClone(baseCtx);
+    goodCtx.principles = ['Legal > Data > Sourcing', 'Standard platform over custom'];
+    goodCtx.defaultRule = 'Deviations carry burden of proof.';
+    goodCtx.parties[1].consultWhen = 'Queues or deployment config change.';
+    assert.deepEqual(validatePayload({ context: goodCtx, spec: baseSpec }, 'gov-ok').errs, []);
+
+    const badPrinciplesType = structuredClone(baseCtx);
+    badPrinciplesType.principles = 'not-an-array';
+    assert.ok(validatePayload({ context: badPrinciplesType, spec: baseSpec }, 'p-arr').errs.some((e) => e.includes('context.principles')));
+
+    const badPrinciplesItem = structuredClone(baseCtx);
+    badPrinciplesItem.principles = ['Valid', '   '];
+    assert.ok(validatePayload({ context: badPrinciplesItem, spec: baseSpec }, 'p-blank').errs.some((e) => e.includes('context.principles')));
+
+    const badDefault = structuredClone(baseCtx);
+    badDefault.defaultRule = '  ';
+    assert.ok(validatePayload({ context: badDefault, spec: baseSpec }, 'def').errs.some((e) => e.includes('context.defaultRule')));
+
+    const badConsult = structuredClone(baseCtx);
+    badConsult.parties[0].consultWhen = '';
+    assert.ok(validatePayload({ context: badConsult, spec: baseSpec }, 'cw').errs.some((e) => e.includes('consultWhen')));
+  });
+
   it('validates a standalone HTML file outside repository root', () => {
     const out = execFileSync('node', [
       path.join(ROOT, 'scripts', 'validate.mjs'),
@@ -541,6 +565,135 @@ describe('merge-answers.mjs', () => {
     assert.equal(merged.resolved[0].id, 'SC-1');
     assert.equal(merged.summary.moot, 1);
     assert.equal(merged.moot[0].id, 'SC-2');
+  });
+
+  it('renders principles, defaultRule, and escaped consultWhen on #raci without altering question cards', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const specData = structuredClone(extractJsonIsland(html, 'spec-data'));
+    specData.context.principles = ['<script>alert(1)</script> Legal first', 'Data platform second'];
+    const savedData = extractJsonIsland(html, 'saved');
+    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const appScript = scripts[scripts.length - 1][1];
+
+    const makeEl = (id) => ({
+      id,
+      innerHTML: '',
+      textContent: id === 'spec-data' ? JSON.stringify(specData) : id === 'saved' ? JSON.stringify(savedData) : '',
+      value: '',
+      classList: { toggle: () => {}, contains: () => false },
+      addEventListener: () => {},
+      querySelector: () => null,
+      querySelectorAll: () => []
+    });
+    const els = { logo: makeEl('logo'), brandName: makeEl('brandName'), brandSub: makeEl('brandSub'), roleLabel: makeEl('roleLabel'), btnSave: makeEl('btnSave'), btnCopyCode: makeEl('btnCopyCode'), saveState: makeEl('saveState'), role: makeEl('role'), nav: makeEl('nav'), main: makeEl('main'), 'spec-data': makeEl('spec-data'), saved: makeEl('saved') };
+    const context = {
+      JSON, String, Number, Boolean, Array, Object, Math, Date, RegExp, Error,
+      encodeURIComponent, decodeURIComponent, unescape, escape,
+      btoa: (s) => Buffer.from(s, 'latin1').toString('base64'),
+      setTimeout, clearTimeout,
+      alert: () => {},
+      confirm: () => true,
+      location: { hash: '#raci' },
+      history: { pushState: () => {} },
+      localStorage: { getItem: () => null, setItem: () => {} },
+      navigator: { clipboard: { writeText: () => Promise.resolve() } },
+      window: { scrollY: 0, scrollTo: () => {}, addEventListener: () => {} },
+      document: {
+        getElementById: (id) => els[id] || makeEl(id),
+        addEventListener: () => {},
+        createElement: () => ({ style: {}, select: () => {}, remove: () => {}, setAttribute: () => {} }),
+        body: { appendChild: () => {} },
+        documentElement: { cloneNode: () => ({ querySelector: () => ({ innerHTML: '', textContent: '' }), querySelectorAll: () => [], outerHTML: '' }) }
+      }
+    };
+
+    vm.runInNewContext(appScript, context);
+    assert.ok(els.main.innerHTML.includes('Decision Principles (Priority Order)'));
+    assert.ok(els.main.innerHTML.includes('Default / Burden-of-Proof Rule'));
+    assert.ok(els.main.innerHTML.includes('Consult when:'));
+    assert.ok(els.main.innerHTML.includes('&lt;script&gt;alert(1)&lt;/script&gt; Legal first'));
+    assert.ok(!els.main.innerHTML.includes('<script>alert(1)</script>'));
+  });
+
+  it('extracts sub-headings under ## Open Questions and ignores ## Decisions in init-case', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-init-nested-'));
+    try {
+      const planPath = path.join(tmpDir, 'plan.md');
+      const outDir = path.join(tmpDir, 'out');
+      fs.writeFileSync(planPath, [
+        '# Service Plan',
+        '',
+        '## Decisions',
+        '- We use PostgreSQL (decided 2026-11-20)',
+        '- Region is eu-central-1 (locked)',
+        '',
+        '## Open Questions',
+        '### Security',
+        '- Require MFA for admins?',
+        '- Session timeout duration?',
+        '',
+        '## Implementation Notes',
+        '- Refactor worker queue'
+      ].join('\n'));
+      execFileSync('node', [path.join(ROOT, 'scripts', 'init-case.mjs'), planPath, '--out-dir', outDir], { encoding: 'utf8' });
+      const spec = JSON.parse(fs.readFileSync(path.join(outDir, 'spec.json'), 'utf8'));
+      const titles = spec.questions.map((q) => q.question);
+      assert.equal(spec.questions.length, 2);
+      assert.deepEqual(titles, ['Require MFA for admins?', 'Session timeout duration?']);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects unschema\'d properties via Draft 2020-12 JSON Schema checks in validatePayload', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'), 'utf8');
+    const bad = structuredClone(extractJsonIsland(html, 'spec-data'));
+    bad.context.unexpectedCtxField = 'nope';
+    bad.spec.questions[0].unexpectedQField = 123;
+    const { errs } = validatePayload(bad, 'schema-test');
+    assert.ok(errs.some((e) => e.includes('unexpected additional property "unexpectedCtxField"')));
+    assert.ok(errs.some((e) => e.includes('unexpected additional property "unexpectedQField"')));
+  });
+
+  it('resolves latest reply from the same decider via timestamp while flagging distinct decider conflicts', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pl-latest-'));
+    try {
+      const encode = (obj) => 'PKL1:' + Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url') + ':PKL';
+      const first = encode({ v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'BIZ', name: 'Alice', at: '2026-11-26T10:00:00.000Z', a: { 'OQ-4': { o: '0', t: '', n: 'Initial choice' } } });
+      const second = encode({ v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'BIZ', name: 'Alice', at: '2026-11-26T11:00:00.000Z', a: { 'OQ-4': { o: '1', t: '', n: 'Corrected choice' } } });
+
+      const merged = JSON.parse(execFileSync('node', [
+        path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+        '--json',
+        path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+        '--code', first,
+        '--code', second
+      ], { encoding: 'utf8' }));
+      assert.equal(merged.summary.resolved, 1);
+      assert.equal(merged.summary.conflicts, 0);
+      assert.ok(merged.resolved[0].answer.startsWith('B:'));
+      assert.ok(merged.warnings.some((w) => w.includes('superseded') && w.includes('Alice')));
+
+      const rival = encode({ v: 1, id: 'order-csv-export', ver: '0.1.0', role: 'BIZ', name: 'Bob', at: '2026-11-26T12:00:00.000Z', a: { 'OQ-4': { o: '2', t: '', n: 'Different decider' } } });
+      let conflictExit = 0;
+      let conflictJson = null;
+      try {
+        execFileSync('node', [
+          path.join(ROOT, 'scripts', 'merge-answers.mjs'),
+          '--json',
+          path.join(ROOT, 'examples', 'generic-plan', 'open-points.html'),
+          '--code', second,
+          '--code', rival
+        ], { encoding: 'utf8', stdio: 'pipe' });
+      } catch (err) {
+        conflictExit = err.status;
+        conflictJson = JSON.parse(String(err.stdout));
+      }
+      assert.equal(conflictExit, 2);
+      assert.equal(conflictJson.summary.conflicts, 1);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
 

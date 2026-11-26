@@ -25,6 +25,16 @@
       "items": { "type": "string", "minLength": 1 },
       "description": "Standing environment constraints (e.g., AI implements after release)."
     },
+    "principles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Ordered decision hierarchy (index 0 wins on collision, e.g. Legal > Data > Sourcing)."
+    },
+    "defaultRule": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Standing burden-of-proof / fallback rule when uncertainty cannot be resolved."
+    },
     "parties": {
       "type": "array",
       "minItems": 1,
@@ -41,6 +51,11 @@
           },
           "role": { "type": "string", "minLength": 1 },
           "job": { "type": "string", "minLength": 1 },
+          "consultWhen": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Trigger condition when this party must be consulted (C) or given mandate (A), e.g. personal data or employee monitoring."
+          },
           "isPlatform": {
             "type": "boolean",
             "default": false,

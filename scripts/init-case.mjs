@@ -43,18 +43,24 @@ const relInput = path.relative(root, inPath) || path.basename(inPath);
 // Extract open points from:
 // 1. [NEEDS CLARIFICATION: ...] anywhere
 // 2. Explicit open-point IDs (OQ-x, OPEN-x, Q-x, U-x, TODO-x) anywhere — never US-x / FR-x / REQ-x
-// 3. Plain bullets or numbered items inside Open Questions / Clarifications / Decisions / Unprovable headings
+// 3. Plain bullets or numbered items inside Open Questions / Clarifications / Open Decisions / Unprovable headings (including sub-headings)
 const extracted = [];
 let idx = 1;
-let inOpenSection = false;
-const OPEN_HEADING_RE = /\b(open\s+questions?|open\s+points?|clarifications?|decisions?|offene\s+(?:fragen|punkte)|unprovable|nicht\s+nachweisbar|todo)\b/i;
+let openSectionLevel = 0;
+const OPEN_HEADING_RE = /\b(open\s+(?:questions?|points?|decisions?)|pending\s+decisions?|decisions?\s+(?:needed|required)|clarifications?|offene\s+(?:fragen|punkte|entscheidungen)|unprovable|nicht\s+nachweisbar|todo)\b/i;
 
 for (const line of md.split(/\r?\n/)) {
-  const heading = line.match(/^#{1,6}\s+(.+)$/);
+  const heading = line.match(/^(#{1,6})\s+(.+)$/);
   if (heading) {
-    inOpenSection = OPEN_HEADING_RE.test(heading[1]);
+    const level = heading[1].length;
+    if (OPEN_HEADING_RE.test(heading[2])) {
+      openSectionLevel = level;
+    } else if (openSectionLevel > 0 && level <= openSectionLevel) {
+      openSectionLevel = 0;
+    }
     continue;
   }
+  const inOpenSection = openSectionLevel > 0;
 
   const ncMatches = [...line.matchAll(/\[NEEDS CLARIFICATION:\s*([^\]]+)\]/gi)];
   if (ncMatches.length > 0) {

@@ -66,6 +66,7 @@ function decodeAnswerCode(token, sourceLabel) {
       file: sourceLabel,
       specId: obj.id || '',
       specVersion: obj.ver || '',
+      at: obj.at || '',
       state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
     };
   } catch (err) {
@@ -96,6 +97,7 @@ function extractCodesFromText(raw, sourceFile) {
           file: label,
           specId: obj.id || '',
           specVersion: obj.ver || '',
+          at: obj.at || '',
           state: { role: obj.role || '', name: obj.name || '', a: obj.a || {} }
         };
       } catch {
@@ -124,6 +126,7 @@ for (const f of files) {
       specId: saved.specId || specData.spec?.id || '',
       htmlSpecId: specData.spec?.id || '',
       specVersion: saved.specVersion || specData.spec?.spec?.version || '',
+      at: saved.at || '',
       state: saved.S || { role: '', name: '', a: {} }
     });
   } else {
@@ -181,20 +184,61 @@ function isAnswered(ans) {
   return Boolean(ans && ans.o !== '' && (ans.o !== 'x' || (ans.t || '').trim() !== ''));
 }
 
+function dedupeLatestPerRespondent(qId, entries) {
+  const byIdentity = new Map();
+  const passthrough = [];
+
+  for (const entry of entries) {
+    const cleanName = (entry.respondent || '').trim();
+    if (!entry.role || !cleanName || cleanName === '(anonymous)') {
+      passthrough.push(entry);
+      continue;
+    }
+    const key = `${entry.role}\0${cleanName.toLowerCase()}`;
+    if (!byIdentity.has(key)) byIdentity.set(key, []);
+    byIdentity.get(key).push(entry);
+  }
+
+  const kept = [...passthrough];
+  for (const group of byIdentity.values()) {
+    if (group.length === 1) {
+      kept.push(group[0]);
+      continue;
+    }
+    const parsed = group.map((entry) => ({ entry, ts: Date.parse(entry.at || '') }));
+    if (parsed.some((p) => !Number.isFinite(p.ts))) {
+      kept.push(...group);
+      continue;
+    }
+    const maxTs = Math.max(...parsed.map((p) => p.ts));
+    const latest = parsed.filter((p) => p.ts === maxTs).map((p) => p.entry);
+    if (latest.length === 1) {
+      kept.push(latest[0]);
+      warnings.push(
+        `${qId}: superseded ${group.length - 1} earlier reply from ${latest[0].respondent} (${latest[0].role}) with newer ${latest[0].at}.`
+      );
+    } else {
+      kept.push(...latest);
+    }
+  }
+  return kept;
+}
+
 function evaluateQuestion(q) {
   const decider = deciderOf(q);
   const expectedHash = optHash(q.options);
-  const entries = [];
+  const rawEntries = [];
 
   for (const item of loaded) {
     const ans = item.state.a?.[q.id];
     if (!isAnswered(ans)) continue;
     const stale = Boolean(ans.oh && ans.oh !== expectedHash);
     const text = stale ? `[STALE option #${ans.o}]` : formatOption(q, ans);
-    entries.push({
+    rawEntries.push({
       file: item.file,
       respondent: item.state.name || '(anonymous)',
       role: item.state.role || '',
+      at: item.at || '',
       isDecider: item.state.role === decider,
       optionIndex: ans.o,
       answer: text,
@@ -202,6 +246,8 @@ function evaluateQuestion(q) {
       stale
     });
   }
+
+  const entries = dedupeLatestPerRespondent(q.id, rawEntries);
 
   if (entries.length === 0) return { status: 'open', decider, entries };
 

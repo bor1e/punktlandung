@@ -1,7 +1,140 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SCHEMA_DIR = path.resolve(__dirname, '..', 'schema');
+const CONTEXT_SCHEMA = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, 'context.schema.json'), 'utf8'));
+const SPEC_SCHEMA = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, 'spec.schema.json'), 'utf8'));
+
+function jsonTypeOf(val) {
+  if (val === null) return 'null';
+  if (Array.isArray(val)) return 'array';
+  return typeof val;
+}
+
+function resolveRef(ref, rootSchema) {
+  if (!ref.startsWith('#/')) return null;
+  const parts = ref.slice(2).split('/').map((s) => s.replace(/~1/g, '/').replace(/~0/g, '~'));
+  let cur = rootSchema;
+  for (const part of parts) {
+    if (!cur || typeof cur !== 'object') return null;
+    cur = cur[part];
+  }
+  return cur || null;
+}
+
+function validateAgainstSchema(val, schema, rootSchema, dataPath, errs) {
+  if (!schema || typeof schema !== 'object') return;
+  if (schema.$ref) {
+    const target = resolveRef(schema.$ref, rootSchema);
+    if (!target) {
+      errs.push(`${dataPath}: unresolvable schema $ref "${schema.$ref}"`);
+      return;
+    }
+    validateAgainstSchema(val, target, rootSchema, dataPath, errs);
+    return;
+  }
+
+  if (schema.oneOf) {
+    let matches = 0;
+    for (const sub of schema.oneOf) {
+      const subErrs = [];
+      validateAgainstSchema(val, sub, rootSchema, dataPath, subErrs);
+      if (subErrs.length === 0) matches += 1;
+    }
+    if (matches !== 1) {
+      errs.push(`${dataPath}: must match exactly one schema in oneOf (matched ${matches})`);
+    }
+  }
+
+  if (schema.anyOf) {
+    let matched = false;
+    for (const sub of schema.anyOf) {
+      const subErrs = [];
+      validateAgainstSchema(val, sub, rootSchema, dataPath, subErrs);
+      if (subErrs.length === 0) {
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      errs.push(`${dataPath}: must match at least one schema in anyOf`);
+    }
+  }
+
+  const actualType = jsonTypeOf(val);
+  if (schema.type !== undefined) {
+    const allowed = Array.isArray(schema.type) ? schema.type : [schema.type];
+    const typeOk = allowed.some((t) => (t === 'integer' ? Number.isInteger(val) : t === actualType));
+    if (!typeOk) {
+      errs.push(`${dataPath}: expected type ${allowed.join('|')}, got ${actualType}`);
+      return;
+    }
+  }
+
+  if (schema.enum && !schema.enum.includes(val)) {
+    errs.push(`${dataPath}: value "${val}" must be one of [${schema.enum.join(', ')}]`);
+  }
+
+  if (typeof val === 'string') {
+    if (schema.minLength !== undefined && val.length < schema.minLength) {
+      errs.push(`${dataPath}: length ${val.length} is shorter than minLength ${schema.minLength}`);
+    }
+    if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(val)) {
+      errs.push(`${dataPath}: "${val}" does not match pattern ${schema.pattern}`);
+    }
+  }
+
+  if (typeof val === 'number') {
+    if (schema.minimum !== undefined && val < schema.minimum) {
+      errs.push(`${dataPath}: ${val} is below minimum ${schema.minimum}`);
+    }
+    if (schema.maximum !== undefined && val > schema.maximum) {
+      errs.push(`${dataPath}: ${val} exceeds maximum ${schema.maximum}`);
+    }
+  }
+
+  if (Array.isArray(val)) {
+    if (schema.minItems !== undefined && val.length < schema.minItems) {
+      errs.push(`${dataPath}: expected at least ${schema.minItems} items, got ${val.length}`);
+    }
+    if (schema.maxItems !== undefined && val.length > schema.maxItems) {
+      errs.push(`${dataPath}: expected at most ${schema.maxItems} items, got ${val.length}`);
+    }
+    if (schema.items) {
+      val.forEach((item, i) => {
+        validateAgainstSchema(item, schema.items, rootSchema, `${dataPath}[${i}]`, errs);
+      });
+    }
+  }
+
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    const keys = Object.keys(val);
+    if (schema.minProperties !== undefined && keys.length < schema.minProperties) {
+      errs.push(`${dataPath}: expected at least ${schema.minProperties} properties, got ${keys.length}`);
+    }
+    if (schema.required) {
+      for (const reqKey of schema.required) {
+        if (!Object.prototype.hasOwnProperty.call(val, reqKey) || val[reqKey] === undefined) {
+          errs.push(`${dataPath}: missing required property "${reqKey}"`);
+        }
+      }
+    }
+    const props = schema.properties || {};
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(props, key)) {
+        validateAgainstSchema(val[key], props[key], rootSchema, `${dataPath}.${key}`, errs);
+      } else if (schema.additionalProperties === false) {
+        errs.push(`${dataPath}: unexpected additional property "${key}"`);
+      } else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+        validateAgainstSchema(val[key], schema.additionalProperties, rootSchema, `${dataPath}.${key}`, errs);
+      }
+    }
+  }
+}
 
 function isPlaceholderText(s) {
   return /replace with concrete choice|Review with AI\/team|^Option [A-D]\s*\(/i.test(String(s || ''));
@@ -22,8 +155,23 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     return { errs, stats: null };
   }
 
+  validateAgainstSchema(ctx, CONTEXT_SCHEMA, CONTEXT_SCHEMA, `${label}: context`, errs);
+  validateAgainstSchema(spec, SPEC_SCHEMA, SPEC_SCHEMA, `${label}: spec`, errs);
+
   if (ctx.lang !== undefined && ctx.lang !== 'de' && ctx.lang !== 'en') {
     errs.push(`${label}: context.lang must be "de" or "en", found "${ctx.lang}"`);
+  }
+
+  if (ctx.principles !== undefined) {
+    if (!Array.isArray(ctx.principles) || ctx.principles.some((x) => typeof x !== 'string' || !x.trim())) {
+      errs.push(`${label}: context.principles must be an array of non-empty strings`);
+    }
+  }
+
+  if (ctx.defaultRule !== undefined) {
+    if (typeof ctx.defaultRule !== 'string' || !ctx.defaultRule.trim()) {
+      errs.push(`${label}: context.defaultRule must be a non-empty string`);
+    }
   }
 
   if (!Array.isArray(ctx.parties) || ctx.parties.length === 0) {
@@ -48,6 +196,9 @@ export function validatePayload(payload, label = 'spec-data', opts = {}) {
     }
     if (typeof p.color === 'string' && !/^#[0-9a-fA-F]{3,8}$/.test(p.color)) {
       errs.push(`${label}: party "${p.id}" color must be hex (#rgb..#rrggbbaa), found "${p.color}"`);
+    }
+    if (p.consultWhen !== undefined && (typeof p.consultWhen !== 'string' || !p.consultWhen.trim())) {
+      errs.push(`${label}: party "${p.id}" consultWhen must be a non-empty string`);
     }
   }
 

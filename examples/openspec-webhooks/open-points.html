@@ -108,7 +108,7 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .wft{border:1px dashed #bbb;border-radius:6px;padding:10px;font-size:12.5px;color:var(--fg-2);background:var(--screen);margin:6px 0}
 textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,Consolas,monospace;background:#fff}
 input.name{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;min-width:280px;background:#fff}
-ul.plain{margin:6px 0;padding-left:20px}ul.plain li{margin:4px 0}
+ul.plain,ol.plain{margin:6px 0;padding-left:20px}ul.plain li,ol.plain li{margin:4px 0}
 @media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:20px 16px 60px}}
 @media print{.side,.tools,.link{display:none}.app{display:block}main{padding:0;max-width:none}.q{break-inside:avoid}}
 </style></head>
@@ -126,7 +126,7 @@ ul.plain{margin:6px 0;padding-left:20px}ul.plain li{margin:4px 0}
 </aside>
 <main id="main"><noscript>JavaScript is required to view this interactive overview.</noscript></main>
 </div>
-<script type="application/json" id="spec-data">{"context":{"$schema":"../../schema/context.schema.json","lang":"en","org":"Product Delivery Team","assignmentNote":"RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.","constraints":["An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.","Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."],"parties":[{"id":"BIZ","name":"Business","short":"Biz","color":"#7b3fb5","role":"Business & Compliance Stakeholders","job":"Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.","isPlatform":false},{"id":"PO","name":"Product Owner","short":"PO","color":"#1c6dd0","role":"Product Management","job":"Decides UX trade-offs, defaults, and acceptance criteria where proposals exist.","isPlatform":false},{"id":"ARCH","name":"Architect","short":"Arch","color":"#0e7c86","role":"Software Architect","job":"Decides execution architecture, API contracts, and performance bounds.","isPlatform":false},{"id":"PLAT","name":"Platform Team","short":"Plat","color":"#5c7a1f","role":"Central Platform & Infrastructure","job":"Answers no product questions; consulted only if background workers, queues, or deployment config change.","isPlatform":true}]},"spec":{"$schema":"../../schema/spec.schema.json","id":"openspec-webhook-retries","logo":"WH","brand":"Webhook Retries","subtitle":"OpenSpec brownfield delta example","title":"Signed Webhook Retries","lead":"Async stakeholder sign-off for openspec/changes/webhook-retries/proposal.md before running /opsx:apply. Reuses examples/generic-plan/context.json.","spec":{"file":"examples/openspec-webhooks/proposal.md","version":"0.1.0","date":"2026-11-26","openCount":3,"unprovableCount":0},"sourcesBadges":[{"label":"Workflow","value":"OpenSpec Delta"},{"label":"Team Context","value":"Reused (generic-plan)"}],"groups":[{"id":"security","title":"Signing & Secret Rotation"},{"id":"delivery","title":"Retry & Dead-Letter Policy"}],"topics":{},"questions":[{"id":"WH-1","group":"security","topic":null,"title":"HMAC signature header & rotation window","question":"Which signature header format and dual-secret rotation window do existing webhook consumers require?","context":"proposal.md (WH-1). Fact question: breaking existing consumer verification scripts must be avoided.","options":["X-Webhook-Signature: t=\u003cunix>,v1=\u003chmac-sha256> with 24h dual-secret overlap","X-Hub-Signature-256: sha256=\u003chex> with 7-day overlap"],"proposal":null,"reason":"No proposal: fact question — Business/Partner Integrations knows what existing consumers already verify.","raci":{"BIZ":"AR","ARCH":"C","PO":"I"},"ref":"WH-1","dependsOn":[]},{"id":"WH-2","group":"delivery","topic":null,"title":"Retry window & backoff schedule","question":"For how long should failed webhook deliveries retry with exponential backoff?","context":"proposal.md (WH-2). Longer windows increase queue retention (Platform consulted on queue TTL).","options":["Up to 24 hours (10 attempts with exponential backoff)","Up to 72 hours (15 attempts with exponential backoff)","Up to 1 hour (5 quick retries)"],"proposal":0,"reason":"24 hours survives typical partner maintenance windows without bloating dead-letter/retry queue retention.","raci":{"ARCH":"A","PO":"C","PLAT":"C"},"ref":"WH-2","dependsOn":[]},{"id":"WH-3","group":"delivery","topic":null,"title":"Dead-letter visibility for tenant admins","question":"Should tenant admins see dead-lettered webhook attempts in the UI in v1?","context":"proposal.md (WH-3). Adding a UI table expands scope beyond backend retry delivery.","options":["No UI in v1: log to ops/support only","Read-only failed delivery log in Tenant Settings"],"proposal":0,"reason":"Keeps the OpenSpec delta strictly scoped to delivery reliability; UI can be a follow-up change.","raci":{"PO":"A","BIZ":"C","ARCH":"I"},"ref":"WH-3","dependsOn":[]}],"sources":["examples/openspec-webhooks/proposal.md (v0.1.0)","examples/generic-plan/context.json (reused shared team context)"]}}</script>
+<script type="application/json" id="spec-data">{"context":{"$schema":"../../schema/context.schema.json","lang":"en","org":"Product Delivery Team","assignmentNote":"RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.","principles":["Legal, compliance, and customer-contract requirements take precedence over product or sourcing preferences.","Security and data-access boundaries take precedence over convenience.","Standard platform patterns take precedence over custom one-off solutions."],"defaultRule":"Whoever proposes deviating from the org standard carries the burden of proof; if unresolved by deadline, the reasoned proposal or standard applies.","constraints":["An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.","Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."],"parties":[{"id":"BIZ","name":"Business","short":"Biz","color":"#7b3fb5","role":"Business & Compliance Stakeholders","job":"Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.","consultWhen":"Customer-visible behavior, personal data (PII), or regulatory/contractual rules are affected.","isPlatform":false},{"id":"PO","name":"Product Owner","short":"PO","color":"#1c6dd0","role":"Product Management","job":"Decides UX trade-offs, defaults, and acceptance criteria where proposals exist.","isPlatform":false},{"id":"ARCH","name":"Architect","short":"Arch","color":"#0e7c86","role":"Software Architect","job":"Decides execution architecture, API contracts, and performance bounds.","isPlatform":false},{"id":"PLAT","name":"Platform Team","short":"Plat","color":"#5c7a1f","role":"Central Platform & Infrastructure","job":"Answers no product questions; consulted only if background workers, queues, or deployment config change.","consultWhen":"Background workers, queues, CI/CD pipelines, or deployment config change.","isPlatform":true}]},"spec":{"$schema":"../../schema/spec.schema.json","id":"openspec-webhook-retries","logo":"WH","brand":"Webhook Retries","subtitle":"OpenSpec brownfield delta example","title":"Signed Webhook Retries","lead":"Async stakeholder sign-off for openspec/changes/webhook-retries/proposal.md before running /opsx:apply. Reuses examples/generic-plan/context.json.","spec":{"file":"examples/openspec-webhooks/proposal.md","version":"0.1.0","date":"2026-11-26","openCount":3,"unprovableCount":0},"sourcesBadges":[{"label":"Workflow","value":"OpenSpec Delta"},{"label":"Team Context","value":"Reused (generic-plan)"}],"groups":[{"id":"security","title":"Signing & Secret Rotation"},{"id":"delivery","title":"Retry & Dead-Letter Policy"}],"topics":{},"questions":[{"id":"WH-1","group":"security","topic":null,"title":"HMAC signature header & rotation window","question":"Which signature header format and dual-secret rotation window do existing webhook consumers require?","context":"proposal.md (WH-1). Fact question: breaking existing consumer verification scripts must be avoided.","options":["X-Webhook-Signature: t=\u003cunix>,v1=\u003chmac-sha256> with 24h dual-secret overlap","X-Hub-Signature-256: sha256=\u003chex> with 7-day overlap"],"proposal":null,"reason":"No proposal: fact question — Business/Partner Integrations knows what existing consumers already verify.","raci":{"BIZ":"AR","ARCH":"C","PO":"I"},"ref":"WH-1","dependsOn":[]},{"id":"WH-2","group":"delivery","topic":null,"title":"Retry window & backoff schedule","question":"For how long should failed webhook deliveries retry with exponential backoff?","context":"proposal.md (WH-2). Longer windows increase queue retention (Platform consulted on queue TTL).","options":["Up to 24 hours (10 attempts with exponential backoff)","Up to 72 hours (15 attempts with exponential backoff)","Up to 1 hour (5 quick retries)"],"proposal":0,"reason":"24 hours survives typical partner maintenance windows without bloating dead-letter/retry queue retention.","raci":{"ARCH":"A","PO":"C","PLAT":"C"},"ref":"WH-2","dependsOn":[]},{"id":"WH-3","group":"delivery","topic":null,"title":"Dead-letter visibility for tenant admins","question":"Should tenant admins see dead-lettered webhook attempts in the UI in v1?","context":"proposal.md (WH-3). Adding a UI table expands scope beyond backend retry delivery.","options":["No UI in v1: log to ops/support only","Read-only failed delivery log in Tenant Settings"],"proposal":0,"reason":"Keeps the OpenSpec delta strictly scoped to delivery reliability; UI can be a follow-up change.","raci":{"PO":"A","BIZ":"C","ARCH":"I"},"ref":"WH-3","dependsOn":[]}],"sources":["examples/openspec-webhooks/proposal.md (v0.1.0)","examples/generic-plan/context.json (reused shared team context)"]}}</script>
 <script type="application/json" id="saved">{}</script>
 <script>
 (function(){
@@ -184,7 +184,10 @@ var T={
   raciTitle:'Zuständigkeiten', raciLead:'Wer entscheidet welche Frage, und wer liefert die Antwort dazu?',
   raciLegend:'<b>A</b> entscheidet (genau eine Rolle je Frage) · <b>R</b> liefert die Antwort oder arbeitet sie aus · <b>C</b> wird vorher gefragt · <b>I</b> wird informiert',
   rolesTitle:'Rollen', colRole:'Rolle', colWho:'Wer das ist', colJob:'Aufgabe bei der Klärung',
+  consultWhenLabel:'Einbinden bei',
+  principlesTitle:'Entscheidungsprinzipien (Rangfolge)',
   constraintsTitle:'Rahmenbedingungen des Teams',
+  defaultRuleLabel:'Standardregel bei Unsicherheit',
   missingTitle:'Fehlende Unterlagen', colDoc:'Unterlage', colCanSupply:'Kann liefern', colWhy:'Wozu',
   ansTitle:'Antworten', ansLead:'Alle bisher gegebenen Antworten. Der Zwischenstand liegt nur in diesem Browser. Zum Weitergeben die Datei mit Antworten speichern oder den Text kopieren.',
   namePh:'Ihr Name und Bereich', copyText:'Text kopieren', copyJson:'JSON für AI-Bot kopieren', copied:'Kopiert', resetAll:'Alle Antworten löschen',
@@ -246,7 +249,10 @@ var T={
   raciTitle:'Responsibilities (RACI)', raciLead:'Who decides each question, and who supplies the answer?',
   raciLegend:'<b>A</b> decides (exactly one per question) · <b>R</b> supplies the answer · <b>C</b> consulted beforehand · <b>I</b> informed',
   rolesTitle:'Roles', colRole:'Role', colWho:'Who', colJob:'Responsibility during clarification',
+  consultWhenLabel:'Consult when',
+  principlesTitle:'Decision Principles (Priority Order)',
   constraintsTitle:'Team Environment Constraints',
+  defaultRuleLabel:'Default / Burden-of-Proof Rule',
   missingTitle:'Missing Documents', colDoc:'Document', colCanSupply:'Owner', colWhy:'Needed for',
   ansTitle:'Answers', ansLead:'All answers given so far (stored as a draft in this browser). Save a copy of this file or copy the text/JSON summary to send back.',
   namePh:'Your name and role', copyText:'Copy text', copyJson:'Copy JSON for AI', copied:'Copied', resetAll:'Clear all answers',
@@ -265,7 +271,7 @@ var T={
 /* ---------- Normalize Context & Spec ---------- */
 var P={}, ORDER=[];
 (CTX.parties||[]).forEach(function(p){
- P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,isPlatform:!!p.isPlatform};
+ P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,consultWhen:p.consultWhen||'',isPlatform:!!p.isPlatform};
  ORDER.push(p.id);
 });
 var KS=SPEC.keystone||null;
@@ -531,10 +537,16 @@ V.raci=function(){
   });
  });
  s+='</table></div>';
- s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td><td>'+h(P[p].job)+'</td></tr>'}).join('')+'</table></div>';
+ s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td><td>'+h(P[p].job)+(P[p].consultWhen?'<div class="small" style="margin-top:4px"><b>'+T.consultWhenLabel+':</b> '+h(P[p].consultWhen)+'</div>':'')+'</td></tr>'}).join('')+'</table></div>';
  if(SPEC.extraRolesNote){s+='<p class="small">'+h(SPEC.extraRolesNote)+'</p>'}
+ if(CTX.principles&&CTX.principles.length){
+  s+='<h2>'+T.principlesTitle+'</h2><div class="panel"><ol class="plain">'+CTX.principles.map(function(c){return '<li>'+h(c)+'</li>'}).join('')+'</ol></div>';
+ }
  if(CTX.constraints&&CTX.constraints.length){
   s+='<h2>'+T.constraintsTitle+'</h2><div class="panel"><ul class="plain">'+CTX.constraints.map(function(c){return '<li>'+h(c)+'</li>'}).join('')+'</ul></div>';
+ }
+ if(CTX.defaultRule){
+  s+='<div class="callout"><b>'+T.defaultRuleLabel+'</b><p>'+h(CTX.defaultRule)+'</p></div>';
  }
  if(SPEC.missing&&SPEC.missing.length){
   s+='<h2>'+T.missingTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colDoc+'</th><th>'+T.colCanSupply+'</th><th>'+T.colWhy+'</th></tr>'+SPEC.missing.map(function(m){return '<tr><td>'+h(m[0])+'</td><td>'+h(m[1])+'</td><td>'+h(m[2])+'</td></tr>'}).join('')+'</table></div>';
@@ -566,7 +578,7 @@ function summaryText(){
  return t;
 }
 function answerCode(){
- var payload={v:1,id:SPEC.id||'spec',ver:SPEC_VER,role:S.role||'',name:S.name||'',a:stampedAnswers()};
+ var payload={v:1,id:SPEC.id||'spec',ver:SPEC_VER,role:S.role||'',name:S.name||'',at:new Date().toISOString(),a:stampedAnswers()};
  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
  return 'PKL1:'+b64+':PKL';
 }

@@ -19,7 +19,7 @@
 
 Coding agents (`Claude Code`, `Cursor`, `GitHub Spec Kit /clarify`) clarify **one developer at a time in a terminal**. That breaks down when half the answers belong to **Business, Legal, Operations, or Architecture** who never open a terminal or GitHub PR.
 
-- **Anonymised production case (`examples/steuerbox/`):** A real feature spec had **22 open points + 5 unprovable statements** across **6 roles**. Turning them into one color-coded Punktlandung page organized them into 25 topics / 40 sub-questions and showed Business that only **9 of 40** decisions were theirs (while 35 already carried a reasoned proposal).
+- **Anonymised production case (`examples/steuerbox/`):** A real feature spec had **22 open points + 5 unprovable statements** across **7 roles**. Turning them into one color-coded Punktlandung page organized them into 25 topics / 40 sub-questions and showed Business that only **9 of 40** decisions were theirs (while 35 already carried a reasoned proposal).
 - **Zero infrastructure:** One self-contained `.html` file, **0 npm dependencies**, no backend, no logins.
 - **Flexible sharing & return path:** Host on your Intranet/Teams Files or share directly (test `.html` hosting in your tenant first — SharePoint Online often downloads `.html` instead of rendering inline, and corporate mail filters often block `.html` attachments). Stakeholders click **"Save with answers"** *or* **"Copy answer code"** (`PKL1:...` — paste straight into an email, Teams, or Slack reply).
 

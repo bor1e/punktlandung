@@ -108,7 +108,7 @@ tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;color:var(--fg
 .wft{border:1px dashed #bbb;border-radius:6px;padding:10px;font-size:12.5px;color:var(--fg-2);background:var(--screen);margin:6px 0}
 textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,Consolas,monospace;background:#fff}
 input.name{border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;min-width:280px;background:#fff}
-ul.plain{margin:6px 0;padding-left:20px}ul.plain li{margin:4px 0}
+ul.plain,ol.plain{margin:6px 0;padding-left:20px}ul.plain li,ol.plain li{margin:4px 0}
 @media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:20px 16px 60px}}
 @media print{.side,.tools,.link{display:none}.app{display:block}main{padding:0;max-width:none}.q{break-inside:avoid}}
 </style></head>
@@ -184,7 +184,10 @@ var T={
   raciTitle:'Zuständigkeiten', raciLead:'Wer entscheidet welche Frage, und wer liefert die Antwort dazu?',
   raciLegend:'<b>A</b> entscheidet (genau eine Rolle je Frage) · <b>R</b> liefert die Antwort oder arbeitet sie aus · <b>C</b> wird vorher gefragt · <b>I</b> wird informiert',
   rolesTitle:'Rollen', colRole:'Rolle', colWho:'Wer das ist', colJob:'Aufgabe bei der Klärung',
+  consultWhenLabel:'Einbinden bei',
+  principlesTitle:'Entscheidungsprinzipien (Rangfolge)',
   constraintsTitle:'Rahmenbedingungen des Teams',
+  defaultRuleLabel:'Standardregel bei Unsicherheit',
   missingTitle:'Fehlende Unterlagen', colDoc:'Unterlage', colCanSupply:'Kann liefern', colWhy:'Wozu',
   ansTitle:'Antworten', ansLead:'Alle bisher gegebenen Antworten. Der Zwischenstand liegt nur in diesem Browser. Zum Weitergeben die Datei mit Antworten speichern oder den Text kopieren.',
   namePh:'Ihr Name und Bereich', copyText:'Text kopieren', copyJson:'JSON für AI-Bot kopieren', copied:'Kopiert', resetAll:'Alle Antworten löschen',
@@ -246,7 +249,10 @@ var T={
   raciTitle:'Responsibilities (RACI)', raciLead:'Who decides each question, and who supplies the answer?',
   raciLegend:'<b>A</b> decides (exactly one per question) · <b>R</b> supplies the answer · <b>C</b> consulted beforehand · <b>I</b> informed',
   rolesTitle:'Roles', colRole:'Role', colWho:'Who', colJob:'Responsibility during clarification',
+  consultWhenLabel:'Consult when',
+  principlesTitle:'Decision Principles (Priority Order)',
   constraintsTitle:'Team Environment Constraints',
+  defaultRuleLabel:'Default / Burden-of-Proof Rule',
   missingTitle:'Missing Documents', colDoc:'Document', colCanSupply:'Owner', colWhy:'Needed for',
   ansTitle:'Answers', ansLead:'All answers given so far (stored as a draft in this browser). Save a copy of this file or copy the text/JSON summary to send back.',
   namePh:'Your name and role', copyText:'Copy text', copyJson:'Copy JSON for AI', copied:'Copied', resetAll:'Clear all answers',
@@ -265,7 +271,7 @@ var T={
 /* ---------- Normalize Context & Spec ---------- */
 var P={}, ORDER=[];
 (CTX.parties||[]).forEach(function(p){
- P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,isPlatform:!!p.isPlatform};
+ P[p.id]={k:p.name,s:p.short||p.name,c:p.color,role:p.role,job:p.job,consultWhen:p.consultWhen||'',isPlatform:!!p.isPlatform};
  ORDER.push(p.id);
 });
 var KS=SPEC.keystone||null;
@@ -531,10 +537,16 @@ V.raci=function(){
   });
  });
  s+='</table></div>';
- s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td><td>'+h(P[p].job)+'</td></tr>'}).join('')+'</table></div>';
+ s+='<h2>'+T.rolesTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colRole+'</th><th>'+T.colWho+'</th><th>'+T.colJob+'</th></tr>'+ORDER.map(function(p){return '<tr><td>'+pchip(p)+'</td><td>'+h(P[p].role)+'</td><td>'+h(P[p].job)+(P[p].consultWhen?'<div class="small" style="margin-top:4px"><b>'+T.consultWhenLabel+':</b> '+h(P[p].consultWhen)+'</div>':'')+'</td></tr>'}).join('')+'</table></div>';
  if(SPEC.extraRolesNote){s+='<p class="small">'+h(SPEC.extraRolesNote)+'</p>'}
+ if(CTX.principles&&CTX.principles.length){
+  s+='<h2>'+T.principlesTitle+'</h2><div class="panel"><ol class="plain">'+CTX.principles.map(function(c){return '<li>'+h(c)+'</li>'}).join('')+'</ol></div>';
+ }
  if(CTX.constraints&&CTX.constraints.length){
   s+='<h2>'+T.constraintsTitle+'</h2><div class="panel"><ul class="plain">'+CTX.constraints.map(function(c){return '<li>'+h(c)+'</li>'}).join('')+'</ul></div>';
+ }
+ if(CTX.defaultRule){
+  s+='<div class="callout"><b>'+T.defaultRuleLabel+'</b><p>'+h(CTX.defaultRule)+'</p></div>';
  }
  if(SPEC.missing&&SPEC.missing.length){
   s+='<h2>'+T.missingTitle+'</h2><div class="panel wide"><table><tr><th>'+T.colDoc+'</th><th>'+T.colCanSupply+'</th><th>'+T.colWhy+'</th></tr>'+SPEC.missing.map(function(m){return '<tr><td>'+h(m[0])+'</td><td>'+h(m[1])+'</td><td>'+h(m[2])+'</td></tr>'}).join('')+'</table></div>';
@@ -566,7 +578,7 @@ function summaryText(){
  return t;
 }
 function answerCode(){
- var payload={v:1,id:SPEC.id||'spec',ver:SPEC_VER,role:S.role||'',name:S.name||'',a:stampedAnswers()};
+ var payload={v:1,id:SPEC.id||'spec',ver:SPEC_VER,role:S.role||'',name:S.name||'',at:new Date().toISOString(),a:stampedAnswers()};
  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
  return 'PKL1:'+b64+':PKL';
 }

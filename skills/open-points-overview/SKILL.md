@@ -1,7 +1,7 @@
 ---
 name: open-points-overview
 description: "Turns the open points of any plan.md, Spec Kit spec, or OpenSpec proposal into one self-contained HTML page on which each party selects answers and sends them back. Uses a reusable team context.json plus a per-plan spec.json. Triggers on: 'overview for the business department', 'open questions page', 'who decides what', 'RACI for the open points', 'make the spec ready for implementation'."
-version: 2.4.0
+version: 2.5.0
 ---
 
 # Open Points Overview (Two-Layer Model)
@@ -12,7 +12,7 @@ The page is a reading version of the spec. It adds no requirement and decides no
 
 ## Two-Layer Architecture
 
-1. **`context.json` (`schema/context.schema.json`, defined once per team/project):** Roles, colors, RACI responsibilities, platform flags (`isPlatform`), language (`de`/`en`), and environment constraints (e.g. "AI implements after release"). Reused unchanged across every `plan.md`.
+1. **`context.json` (`schema/context.schema.json`, defined once per team/project):** Roles, colors, RACI responsibilities, platform flags (`isPlatform`), optional `consultWhen` triggers, ordered `principles` (priority hierarchy), optional `defaultRule` (burden of proof), language (`de`/`en`), and environment constraints (e.g. "AI implements after release"). Reused unchanged across every `plan.md`.
 2. **`spec.json` (`schema/spec.schema.json`, generated per `plan.md` / feature set):** Only the open points, options, proposals, RACI assignments, declarative `mootWhen` branching / optional keystone, and optional use-case scenarios.
 3. **Scaffold, Compile & Merge:**
    - Scaffold starter files: `node scripts/init-case.mjs <plan.md|spec.md|proposal.md> [--context <context.json>]`
@@ -38,10 +38,16 @@ Trigger this protocol when:
    - Look for an existing `context.json` in the project first; do not reinvent roles or colors per feature.
    - Merge parties that the reader sees as one party. Ask the user when unsure who is who. Do not guess a team's role from its name.
    - Mark any central platform/ops team with `"isPlatform": true` and give it no product requirement questions (only `C` where build/deployment changes).
+   - Capture standing **`principles`** in strict priority order (collision hierarchy, index `0` wins) and an optional **`defaultRule`** (who carries the burden of proof when deviating from standards).
+   - Capture **`consultWhen`** triggers on governance/compliance/platform parties (e.g., Data Protection, Works Council, Legal) so no question is assigned outside a party's mandate.
    - Ask who implements. If an AI implements after release, assign no question to a development team: the code answers questions about built behaviour.
    - Include environment constraints in `context.constraints` and state `context.assignmentNote` when RACI is a proposal.
 
-2. **Count the open points of the spec.** Write down `openCount` (open points) and `unprovableCount` (statements that cannot be tested). These numbers are the limit for `spec.json`. The page gets no topic that the spec does not have.
+2. **Filter & count the open points of the spec.**
+   - **Disputed & relevant only:** Skip questions whose answer would not change what gets built or approved.
+   - **Zero-discretion check:** If law, policy, or a contract leaves only one lawful/valid option, record it as a constraint rather than creating a multiple-choice question.
+   - **Reversibility triage:** Keep easily reversible choices low-friction unless a provisional step creates irreversible facts (e.g., external data transfer).
+   - Write down `openCount` (open points) and `unprovableCount` (statements that cannot be tested). These numbers are the limit for `spec.json`. The page gets no topic that the spec does not have.
 
 3. **Find the keystone question & conditional branches (`mootWhen`).**
    - Look for the question whose answer decides if other questions exist (for example: two designs or sync vs. async).
@@ -54,7 +60,7 @@ Trigger this protocol when:
    - If one open point contains more than one question, divide it into sub-questions sharing the same `"topic"` ID and register the topic title in `spec.topics`.
 
 5. **Recommend, with a reason, where a recommendation is possible.**
-   - Set `"proposal"` to the 0-based index and explain why in `"reason"` (1–2 sentences).
+   - Set `"proposal"` to the 0-based index and explain why in `"reason"` (1–2 sentences), citing the highest-ranking rule from `context.principles` when options collide and applying `context.defaultRule` when a deviation is unproven.
    - Set `"proposal": null` for a question about a fact (a format, a name, a rule that exists somewhere) and state who knows the fact.
    - A proposal is never a requirement.
 
@@ -68,7 +74,7 @@ Trigger this protocol when:
 
 8. **Verify in a browser & handle the return trip.**
    - Confirm draft persistence (`localStorage`), TiddlyWiki-style dirty indicator + "Save with answers" (`#saved` embed via File System Access API or download fallback), quick Copy/Email reply fallback, plain-text summary, and AI-Bot JSON copy.
-   - When readers send back copies, run `node scripts/merge-answers.mjs [--json|--copilot-prompt] returned-*.html` to resolve each decider's (`A`) answer, respect `mootWhen` / keystone muting, surface conflicts, and patch `plan.md`. Then rebuild until zero open points remain.
+   - When readers send back copies, run `node scripts/merge-answers.mjs [--json|--copilot-prompt] returned-*.html` to resolve each decider's (`A`) answer, respect `mootWhen` / keystone muting, surface conflicts, and patch `plan.md`. Preserve any consulted party's (`C`) dissenting note and record key assumptions that would reopen the decision (review triggers). Then rebuild until zero open points remain.
 
 9. **Keep the page to its purpose.** Process rules (release flow, git versioning) belong in `README.md`, not in the generated HTML.
 

@@ -3,6 +3,12 @@
   "lang": "en",
   "org": "Product Delivery Team",
   "assignmentNote": "RACI assignment is proposed from the reusable team template. Adjust once if ownership changed.",
+  "principles": [
+    "Legal, compliance, and customer-contract requirements take precedence over product or sourcing preferences.",
+    "Security and data-access boundaries take precedence over convenience.",
+    "Standard platform patterns take precedence over custom one-off solutions."
+  ],
+  "defaultRule": "Whoever proposes deviating from the org standard carries the burden of proof; if unresolved by deadline, the reasoned proposal or standard applies.",
   "constraints": [
     "An AI coding agent implements the approved plan.md — ambiguities become assumptions unless closed first.",
     "Platform team receives no product requirement questions (consulted only when build, queue, or deployment infra changes)."
@@ -15,6 +21,7 @@
       "color": "#7b3fb5",
       "role": "Business & Compliance Stakeholders",
       "job": "Decides customer-visible behavior, compliance/PII rules, and supplies domain facts.",
+      "consultWhen": "Customer-visible behavior, personal data (PII), or regulatory/contractual rules are affected.",
       "isPlatform": false
     },
     {
@@ -42,6 +49,7 @@
       "color": "#5c7a1f",
       "role": "Central Platform & Infrastructure",
       "job": "Answers no product questions; consulted only if background workers, queues, or deployment config change.",
+      "consultWhen": "Background workers, queues, CI/CD pipelines, or deployment config change.",
       "isPlatform": true
     }
   ]
